@@ -25,7 +25,7 @@ export async function loadArticleWordCounts(code, endpoints, ui) {
         for(const user in rawArticles) {
             for(const a of rawArticles[user]){
                 const title = a.name || '';
-                const status = a.status || 'অসম্পূর্ণ';
+                const status = a.status || 'অপর্যালোচিত';
                 const reviews = a.reviews || 0;
                 if(title) tasks.push({user, title, status, reviews});
             }
