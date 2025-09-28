@@ -45,7 +45,7 @@ def fetch_articles():
         for article in fountain_data.get("articles", []):
             user = article.get("user")
             name = article.get("name")
-            status = "অসম্পূর্ণ"
+            status = "অপর্যালোচিত"  # Default status
 
             # Correct acceptance/rejection logic
             marks = article.get("marks", [])
