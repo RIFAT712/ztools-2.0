@@ -1,9 +1,8 @@
-// shows jury stats in a table and allows copying as wikitable format
 import { toBn, escapeHtml } from './utils.js';
 
 export async function loadJuryStats(code, endpoints, ui) {
     const { juryEndpoint } = endpoints;
-    const { countBtn, juryBtn, progressWrap, progressBar, juryCard, juryParsedWrap, copyJuryBtn, errorEl } = ui;
+    const { countBtn, juryBtn, progressWrap, progressBar, juryCard, juryParsedWrap, errorEl } = ui;
 
     countBtn.disabled = juryBtn.disabled = true;
     progressWrap.style.display = 'block';
@@ -40,10 +39,19 @@ export async function loadJuryStats(code, endpoints, ui) {
 
         juryParsedWrap.innerHTML = html;
 
+        // remove old copy button if exists
+        let existingCopyBtn = juryCard.querySelector('.copy-btn');
+        if(existingCopyBtn) existingCopyBtn.remove();
+
+        let copyJuryBtn = document.createElement('button');
+        copyJuryBtn.className = 'copy-btn';
+        copyJuryBtn.textContent = 'উইকিটেবিল কপি করুন';
+        juryCard.querySelector('div').appendChild(copyJuryBtn);
+
         copyJuryBtn.onclick = () => {
             navigator.clipboard.writeText(wikitable).then(() => {
                 copyJuryBtn.textContent = '✓ কপি হয়েছে';
-                setTimeout(() => copyJuryBtn.textContent = '📋 উইকিটেবিল কপি করুন', 1400);
+                setTimeout(() => copyJuryBtn.textContent = 'উইকিটেবিল কপি করুন', 1400);
             });
         };
 
