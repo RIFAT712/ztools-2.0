@@ -21,8 +21,9 @@
   <input id="fountainCode" type="text" aria-label="ফাউন্টেন ইউআরএল এর শেষের কোডটি লিখুন">
   
   <div class="buttons">
-    <button id="countBtn" class="btn">📝 শব্দসংখ্যা গণনা করুন</button>
-    <button id="juryBtn" class="btn warn">🧐 পর্যালোচনা পরিসংখ্যান গণনা করুন</button>
+    <button id="countBtn" class="btn">শব্দসংখ্যা পরিসংখ্যান</button>
+    <button id="juryBtn" class="btn">পর্যালোচনা পরিসংখ্যান</button>
+    <button id="rejectedBtn" class="btn">বাতিলকৃত নিবন্ধ</button>
   </div>
 </div>
 
@@ -34,9 +35,6 @@
   <div class="card hidden" id="resultCard" aria-live="polite">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div class="small" id="resultTitle">ফলাফল</div>
-      <div>
-        <button class="copy-btn" id="copyWikiBtn">📋 সকল ব্যবহারকারী</button>
-      </div>
     </div>
     <div class="table-wrap" id="tableWrap"></div>
     <div id="summary" class="small" style="margin-top:10px;text-align:right;color:var(--muted)"></div>
@@ -45,7 +43,7 @@
   <div class="card hidden" id="juryCard">
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div class="small">পর্যালোচনা পরিসংখ্যান</div>
-      <button class="copy-btn" id="copyJuryBtn">📋 উইকিটেবিল কপি করুন</button>
+      <button class="copy-btn" id="copyJuryBtn">উইকিটেবিল কপি করুন</button>
     </div>
     <div class="table-wrap" id="juryParsedWrap"></div>
   </div>

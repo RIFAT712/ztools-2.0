@@ -1,9 +1,8 @@
-// manages word counting of articles and rendering results in table format in Bengali language 
 import { toBn, formatBn, escapeHtml } from './utils.js';
 
 export async function loadArticleWordCounts(code, endpoints, ui) {
     const { fountainEndpoint } = endpoints;
-    const { countBtn, juryBtn, progressWrap, progressBar, resultCard, tableWrap, summaryEl, copyWikiBtn, errorEl } = ui;
+    const { countBtn, juryBtn, progressWrap, progressBar, resultCard, tableWrap, summaryEl, errorEl } = ui;
 
     countBtn.disabled = juryBtn.disabled = true;
     progressWrap.style.display = 'block';
@@ -50,7 +49,7 @@ async function countArticleWords(tasks, siteUrl, ui) {
 
     const totals = {};
     for(const t of tasks) {
-        if(!totals[t.user]) totals[t.user] = {accepted:0, unreviewed:0, rejected:0, total:0, reviews:0, articles: []};
+        if(!totals[t.user]) totals[t.user] = {accepted:0, unreviewed:0, rejected:0, total:0, articles: []};
     }
 
     let idx=0, done=0;
@@ -92,19 +91,17 @@ async function countArticleWords(tasks, siteUrl, ui) {
             if(task.status === 'গৃহীত হয়েছে') totals[task.user].accepted += words;
             else if(task.status === 'গৃহীত হয়নি') totals[task.user].rejected += words;
             else totals[task.user].unreviewed += words;
-            totals[task.user].reviews += (task.reviews || 0);
 
             totals[task.user].articles.push({
                 title: task.title,
                 actualTitle: actualTitle !== task.title ? actualTitle : '',
                 status: task.status,
                 words: words,
-                reviews: task.reviews || 0,
                 isRedirect: actualTitle !== task.title
             });
 
         } catch(e) {
-            totals[task.user].reviews += (task.reviews || 0);
+            // Ignore individual page errors
         } finally {
             done++;
             progressBar.style.width = `${Math.round((done / tasks.length)*100)}%`;
@@ -127,7 +124,7 @@ async function countArticleWords(tasks, siteUrl, ui) {
 }
 
 function renderArticleTable(totals, ui){
-    const { tableWrap, summaryEl, resultCard, copyWikiBtn } = ui;
+    const { tableWrap, summaryEl, resultCard } = ui;
     const keys = Object.keys(totals);
     if(keys.length === 0){ resultCard.classList.add('hidden'); return; }
 
@@ -135,20 +132,27 @@ function renderArticleTable(totals, ui){
 
     const rows = Object.entries(totals).map(([user,v])=>({user,...v})).sort((a,b)=>b.accepted - a.accepted);
 
+    // remove old toolbar if exists
+    let existingToolbar = resultCard.querySelector('.copy-toolbar');
+    if(existingToolbar) existingToolbar.remove();
+
     let toolbar = document.createElement('div');
     toolbar.className = 'copy-toolbar';
     toolbar.style.marginBottom = '0.5em';
     resultCard.prepend(toolbar);
-    toolbar.innerHTML = '';
+
+    let copyWikiBtn = document.createElement('button');
+    copyWikiBtn.className = 'copy-btn';
+    copyWikiBtn.textContent = 'সকল ব্যবহারকারী';
     toolbar.appendChild(copyWikiBtn);
 
     let copyArticlesBtn = document.createElement('button');
-    copyArticlesBtn.textContent = '📋 নিবন্ধের বিস্তারিত কপি করুন';
     copyArticlesBtn.className = 'copy-btn';
+    copyArticlesBtn.textContent = 'ব্যবহারকারী অনুযায়ী';
     toolbar.appendChild(copyArticlesBtn);
 
-    let html = '<table><thead><tr><th>#</th><th class="left">ব্যবহারকারী</th><th>গৃহীত</th><th>অপর্যালোচিত</th><th>বাতিল</th><th>মোট শব্দ</th><th>মোট পর্যালোচিত নিবন্ধ</th></tr></thead><tbody>';
-    let gA=0, gU=0, gR=0, gT=0, gRev=0;
+    let html = '<table><thead><tr><th>#</th><th class="left">ব্যবহারকারী</th><th>গৃহীত</th><th>অপর্যালোচিত</th><th>বাতিল</th><th>মোট শব্দ</th><th>মোট নিবন্ধ</th></tr></thead><tbody>';
+    let gA=0, gU=0, gR=0, gT=0, gArticles=0;
 
     rows.forEach((r,i)=>{
         html += `<tr class="user-row" data-user="${r.user}" style="cursor:pointer;">
@@ -158,7 +162,7 @@ function renderArticleTable(totals, ui){
             <td>${formatBn(r.unreviewed)}</td>
             <td>${formatBn(r.rejected)}</td>
             <td>${formatBn(r.total)}</td>
-            <td>${formatBn(r.reviews)}</td>
+            <td>${formatBn(r.articles.length)}</td>
         </tr>`;
 
         html += `<tr class="articles-row hidden" data-user="${r.user}"><td colspan="7">
@@ -187,13 +191,13 @@ function renderArticleTable(totals, ui){
         </tr>`;
         html += `</tbody></table></td></tr>`;
 
-        gA+=r.accepted; gU+=r.unreviewed; gR+=r.rejected; gT+=r.total; gRev+=r.reviews;
+        gA+=r.accepted; gU+=r.unreviewed; gR+=r.rejected; gT+=r.total; gArticles+=r.articles.length;
     });
 
-    html += `<tr class="total-row"><td></td><td class="left">মোট</td><td>${formatBn(gA)}</td><td>${formatBn(gU)}</td><td>${formatBn(gR)}</td><td>${formatBn(gT)}</td><td>${formatBn(gRev)}</td></tr></tbody></table>`;
+    html += `<tr class="total-row"><td></td><td class="left">মোট</td><td>${formatBn(gA)}</td><td>${formatBn(gU)}</td><td>${formatBn(gR)}</td><td>${formatBn(gT)}</td><td>${formatBn(gArticles)}</td></tr></tbody></table>`;
     tableWrap.innerHTML = html;
 
-    summaryEl.textContent = `সারাংশ — মোট গৃহীত: ${formatBn(gA)} | মোট অপর্যালোচিত: ${formatBn(gU)} | মোট বাতিল: ${formatBn(gR)} | মোট শব্দ: ${formatBn(gT)} | মোট পর্যালোচনা: ${formatBn(gRev)}`;
+    summaryEl.textContent = `সারাংশ — মোট গৃহীত: ${formatBn(gA)} | মোট অপর্যালোচিত: ${formatBn(gU)} | মোট বাতিল: ${formatBn(gR)} | মোট শব্দ: ${formatBn(gT)} | মোট নিবন্ধ: ${formatBn(gArticles)}`;
 
     tableWrap.querySelectorAll('.user-row').forEach(row=>{
         row.addEventListener('click', ()=>{
@@ -204,15 +208,15 @@ function renderArticleTable(totals, ui){
     });
 
     copyWikiBtn.onclick = ()=>{
-        let wikitable = '{| class="wikitable sortable"\n! ব্যবহারকারী !! গৃহীত !! অপর্যালোচিত !! বাতিল !! মোট শব্দ !! মোট পর্যালোচিত নিবন্ধ\n';
+        let wikitable = '{| class="wikitable sortable"\n! ব্যবহারকারী !! গৃহীত !! অপর্যালোচিত !! বাতিল !! মোট শব্দ !! মোট নিবন্ধ\n';
         for(const r of rows){
-            wikitable += `|-\n| ${r.user} || ${toBn(r.accepted)} || ${toBn(r.unreviewed)} || ${toBn(r.rejected)} || ${toBn(r.total)} || ${toBn(r.reviews)}\n`;
+            wikitable += `|-\n| ${r.user} || ${toBn(r.accepted)} || ${toBn(r.unreviewed)} || ${toBn(r.rejected)} || ${toBn(r.total)} || ${toBn(r.articles.length)}\n`;
         }
-        wikitable += `|-\n! মোট || ${toBn(gA)} || ${toBn(gU)} || ${toBn(gR)} || ${toBn(gT)} || ${toBn(gRev)}\n|}`;
+        wikitable += `|-\n! মোট || ${toBn(gA)} || ${toBn(gU)} || ${toBn(gR)} || ${toBn(gT)} || ${toBn(gArticles)}\n|}`;
 
         navigator.clipboard.writeText(wikitable).then(()=>{
             copyWikiBtn.textContent='✓ কপি হয়েছে'; 
-            setTimeout(()=>copyWikiBtn.textContent='📋 সকল ব্যবহারকারী',1400); 
+            setTimeout(()=>copyWikiBtn.textContent='সকল ব্যবহারকারী',1400); 
         });
     };
 
@@ -236,7 +240,7 @@ function renderArticleTable(totals, ui){
 
         navigator.clipboard.writeText(allText).then(() => {
             copyArticlesBtn.textContent = '✓ কপি হয়েছে';
-            setTimeout(() => copyArticlesBtn.textContent = '📋 নিবন্ধের বিস্তারিত কপি করুন', 1400);
+            setTimeout(() => copyArticlesBtn.textContent = 'ব্যবহারকারী অনুযায়ী', 1400);
         });
     };
 }
