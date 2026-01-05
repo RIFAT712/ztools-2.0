@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!code) {
             ui.errorEl.classList.remove('hidden');
-            ui.errorEl.textContent = 'দয়া করে একটি ইভেন্ট নির্বাচন করুন।';
+            ui.errorEl.textContent = 'দয়া করে একটি এডিটাথন নির্বাচন করুন।';
             return;
         }
 
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await resp.json();
 
             // Clear existing options except the first placeholder
-            select.innerHTML = '<option value="">ইভেন্ট নির্বাচন করুন</option>';
+            select.innerHTML = '<option value="">এডিটাথন নির্বাচন করুন</option>';
 
             data.editathons.forEach(e => {
                 const option = document.createElement("option");
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.error("Failed to load editathons:", err);
             ui.errorEl.classList.remove('hidden');
-            ui.errorEl.textContent = 'এডিটথন তালিকা লোড করতে ব্যর্থ হয়েছে।';
+            ui.errorEl.textContent = 'এডিটাথন তালিকা লোড করতে ব্যর্থ হয়েছে।';
         }
     }
 
