@@ -4,7 +4,7 @@ export function initThemeToggle() {
     const themeToggle = document.getElementById('themeToggle');
     const userPref = localStorage.getItem('theme');
 
-    if(userPref === 'light') document.body.classList.add('light');
+    if (userPref === 'light') document.body.classList.add('light');
     updateToggleText();
 
     themeToggle.onclick = () => {

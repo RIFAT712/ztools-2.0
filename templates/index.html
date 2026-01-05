@@ -1,56 +1,58 @@
 <!DOCTYPE html>
 <html lang="bn">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>উইকি নিবন্ধের শব্দ গণক</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>উইকি নিবন্ধের শব্দ গণক</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body>
-<button id="themeToggle">🌙 / ☀️</button>
+  <button id="themeToggle">🌙 / ☀️</button>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">উইকি নিবন্ধের শব্দ গণক</h1>
+      <div class="controls">
+        <label for="editathon-select" class="input-label">একটি এডিটাথন নির্বাচন করুন:</label>
+        <select id="editathon-select" class="btn"
+          style="width: 100%; margin-bottom: 15px; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px;">
+          <option value="">ইভেন্ট লোড হচ্ছে...</option>
+        </select>
 
-<div class="container">
-  <div class="header">
-    <h1 class="title">উইকি নিবন্ধের শব্দ গণক</h1>
-    <div class="controls">
-  <label for="fountainCode" class="input-label">
-    ফাউন্টেন ইউআরএল এর শেষের কোডটি লিখুন — যেমন: https://fountain.toolforge.org/editathons/voy25 এই ক্ষেত্রে কোডটি হবে voy25
-  </label>
-  <input id="fountainCode" type="text" aria-label="ফাউন্টেন ইউআরএল এর শেষের কোডটি লিখুন">
-  
-  <div class="buttons">
-    <button id="countBtn" class="btn">শব্দসংখ্যা পরিসংখ্যান</button>
-    <button id="juryBtn" class="btn">পর্যালোচনা পরিসংখ্যান</button>
-    <button id="rejectedBtn" class="btn">বাতিলকৃত নিবন্ধ</button>
-  </div>
-</div>
-
-  </div>
-
-  <div id="error" class="error hidden"></div>
-  <div class="progress-wrap" id="progressWrap"><div class="progress" id="progressBar"></div></div>
-
-  <div class="card hidden" id="resultCard" aria-live="polite">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div class="small" id="resultTitle">ফলাফল</div>
+        <div class="buttons">
+          <button id="countBtn" class="btn">শব্দসংখ্যা পরিসংখ্যান</button>
+          <button id="juryBtn" class="btn">পর্যালোচনা পরিসংখ্যান</button>
+          <button id="rejectedBtn" class="btn">বাতিলকৃত নিবন্ধ</button>
+        </div>
+      </div>
     </div>
-    <div class="table-wrap" id="tableWrap"></div>
-    <div id="summary" class="small" style="margin-top:10px;text-align:right;color:var(--muted)"></div>
-  </div>
 
-  <div class="card hidden" id="juryCard">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div class="small">পর্যালোচনা পরিসংখ্যান</div>
-      <button class="copy-btn" id="copyJuryBtn">উইকিটেবিল কপি করুন</button>
+    <div id="error" class="error hidden"></div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress" id="progressBar"></div>
     </div>
-    <div class="table-wrap" id="juryParsedWrap"></div>
+
+    <div class="card hidden" id="resultCard" aria-live="polite">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small" id="resultTitle">ফলাফল</div>
+      </div>
+      <div class="table-wrap" id="tableWrap"></div>
+      <div id="summary" class="small" style="margin-top:10px;text-align:right;color:var(--muted)"></div>
+    </div>
+
+    <div class="card hidden" id="juryCard">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small">পর্যালোচনা পরিসংখ্যান</div>
+        <button class="copy-btn" id="copyJuryBtn">উইকিটেবিল কপি করুন</button>
+      </div>
+      <div class="table-wrap" id="juryParsedWrap"></div>
+    </div>
   </div>
-</div>
 
-
-<script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
-
+  <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
+
 </html>

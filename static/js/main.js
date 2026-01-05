@@ -6,13 +6,18 @@ import { loadRejectedArticles } from './rejectedArticles.js';
 document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
 
-    const fountainInput = document.getElementById('fountainCode');
+    // Variable to store the selected Fountain code
+    let activeFountainCode = "";
+
     const countBtn = document.getElementById('countBtn');
-    const juryBtn  = document.getElementById('juryBtn');
+    const juryBtn = document.getElementById('juryBtn');
     const rejectedBtn = document.getElementById('rejectedBtn');
+    const select = document.getElementById("editathon-select");
 
     const ui = {
-        countBtn, juryBtn, rejectedBtn,
+        countBtn,
+        juryBtn,
+        rejectedBtn,
         progressWrap: document.getElementById('progressWrap'),
         progressBar: document.getElementById('progressBar'),
         resultCard: document.getElementById('resultCard'),
@@ -30,24 +35,70 @@ document.addEventListener('DOMContentLoaded', () => {
         juryEndpoint: '/jury_stats'
     };
 
+    /**
+     * Helper to validate selection and clear UI before running a task
+     */
+    function executeAction(actionFunc) {
+        const code = activeFountainCode.trim();
+
+        if (!code) {
+            ui.errorEl.classList.remove('hidden');
+            ui.errorEl.textContent = 'দয়া করে একটি ইভেন্ট নির্বাচন করুন।';
+            return;
+        }
+
+        // Reset UI state
+        ui.errorEl.classList.add('hidden');
+        ui.resultCard.classList.add('hidden');
+        ui.juryCard.classList.add('hidden');
+
+        // Execute the specific module function
+        actionFunc(code, endpoints, ui);
+    }
+
+    async function loadEditathons() {
+        try {
+            const resp = await fetch("/editathons");
+            if (!resp.ok) throw new Error("Network response was not ok");
+
+            const data = await resp.json();
+
+            // Clear existing options except the first placeholder
+            select.innerHTML = '<option value="">ইভেন্ট নির্বাচন করুন</option>';
+
+            data.editathons.forEach(e => {
+                const option = document.createElement("option");
+                option.value = e.code;
+                option.textContent = e.name;
+                select.appendChild(option);
+            });
+        } catch (err) {
+            console.error("Failed to load editathons:", err);
+            ui.errorEl.classList.remove('hidden');
+            ui.errorEl.textContent = 'এডিটথন তালিকা লোড করতে ব্যর্থ হয়েছে।';
+        }
+    }
+
+    // --- Event Listeners ---
+
+    // Update the variable whenever the dropdown changes
+    select.addEventListener('change', (e) => {
+        activeFountainCode = e.target.value;
+        ui.errorEl.classList.add('hidden');
+    });
+
     countBtn.addEventListener('click', () => {
-        const code = fountainInput.value.trim();
-        if (!code) { ui.errorEl.classList.remove('hidden'); ui.errorEl.textContent='দয়া করে ফাউন্টেন কোড লিখুন।'; return; }
-        ui.resultCard.classList.add('hidden'); ui.juryCard.classList.add('hidden');
-        loadArticleWordCounts(code, endpoints, ui);
+        executeAction(loadArticleWordCounts);
     });
 
     juryBtn.addEventListener('click', () => {
-        const code = fountainInput.value.trim();
-        if (!code) { ui.errorEl.classList.remove('hidden'); ui.errorEl.textContent='দয়া করে ফাউন্টেন কোড লিখুন।'; return; }
-        ui.resultCard.classList.add('hidden'); ui.juryCard.classList.add('hidden');
-        loadJuryStats(code, endpoints, ui);
+        executeAction(loadJuryStats);
     });
 
     rejectedBtn.addEventListener('click', () => {
-        const code = fountainInput.value.trim();
-        if (!code) { ui.errorEl.classList.remove('hidden'); ui.errorEl.textContent='দয়া করে ফাউন্টেন কোড লিখুন।'; return; }
-        ui.resultCard.classList.add('hidden'); ui.juryCard.classList.add('hidden');
-        loadRejectedArticles(code, endpoints, ui);
+        executeAction(loadRejectedArticles);
     });
+
+    // Initialize the dropdown on page load
+    loadEditathons();
 });

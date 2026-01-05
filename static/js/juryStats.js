@@ -10,25 +10,25 @@ export async function loadJuryStats(code, endpoints, ui) {
 
     try {
         const resp = await fetch(juryEndpoint, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({code})
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
         });
         const data = await resp.json();
-        if(data.error) throw new Error(data.error);
+        if (data.error) throw new Error(data.error);
 
         const juries = data.raw || [];
         progressWrap.style.display = 'none';
-        if(juries.length === 0){ juryCard.classList.add('hidden'); return; }
+        if (juries.length === 0) { juryCard.classList.add('hidden'); return; }
 
         juryCard.classList.remove('hidden');
-        juries.sort((a,b)=>b[1].total - a[1].total);
+        juries.sort((a, b) => b[1].total - a[1].total);
 
         let html = '<table><thead><tr><th>#</th><th class="left">পর্যালোচক</th><th>মোট</th><th>গৃহীত</th><th>বাতিল</th></tr></thead><tbody>';
         let wikitable = '{| class="wikitable sortable"\n! # !! পর্যালোচক !! মোট !! গৃহীত !! বাতিল\n';
 
-        let gi=1, tTot=0, tAcc=0, tRej=0;
-        for(const [j,s] of juries){
+        let gi = 1, tTot = 0, tAcc = 0, tRej = 0;
+        for (const [j, s] of juries) {
             html += `<tr><td>${toBn(gi)}</td><td class="left">${escapeHtml(j)}</td><td>${toBn(s.total)}</td><td>${toBn(s.accepted)}</td><td>${toBn(s.rejected)}</td></tr>`;
             wikitable += `|-\n| ${toBn(gi)} || ${j} || ${toBn(s.total)} || ${toBn(s.accepted)} || ${toBn(s.rejected)}\n`;
             tTot += s.total; tAcc += s.accepted; tRej += s.rejected; gi++;
@@ -41,7 +41,7 @@ export async function loadJuryStats(code, endpoints, ui) {
 
         // remove old copy button if exists
         let existingCopyBtn = juryCard.querySelector('.copy-btn');
-        if(existingCopyBtn) existingCopyBtn.remove();
+        if (existingCopyBtn) existingCopyBtn.remove();
 
         let copyJuryBtn = document.createElement('button');
         copyJuryBtn.className = 'copy-btn';
@@ -55,9 +55,9 @@ export async function loadJuryStats(code, endpoints, ui) {
             });
         };
 
-    } catch(e){
+    } catch (e) {
         progressWrap.style.display = 'none';
-        errorEl.textContent = 'ডেটা আনতে ব্যর্থ: '+e.message;
+        errorEl.textContent = 'ডেটা আনতে ব্যর্থ: ' + e.message;
         errorEl.classList.remove('hidden');
     } finally {
         countBtn.disabled = juryBtn.disabled = false;

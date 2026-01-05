@@ -5,7 +5,6 @@ export async function loadRejectedArticles(code, endpoints, ui) {
         ui.errorEl.classList.add('hidden');
         ui.progressWrap.style.display = 'block';
         ui.progressBar.style.width = '0%';
-
         const resp = await fetch(endpoints.fountainEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -13,7 +12,6 @@ export async function loadRejectedArticles(code, endpoints, ui) {
         });
         const data = await resp.json();
         ui.progressWrap.style.display = 'none';
-
         if (data.error) {
             ui.errorEl.classList.remove('hidden');
             ui.errorEl.textContent = data.error;
