@@ -1,27 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 import requests
-from collections import defaultdict
+import fountain
 
 app = Flask(__name__)
-
-WIKI_PREFIXES = {
-    "wiki": "wikipedia",
-    "wikt": "wiktionary",
-    "b": "wikibooks",
-    "voy": "wikivoyage",
-    "q": "wikiquote",
-    "s": "wikisource",
-    "n": "wikinews"
-}
-
-
-def get_wiki_url(fountain_wiki_code):
-    if ':' in fountain_wiki_code:
-        prefix, lang = fountain_wiki_code.split(':', 1)
-    else:
-        prefix, lang = "wikipedia", fountain_wiki_code
-    site_suffix = WIKI_PREFIXES.get(prefix, "wikipedia")
-    return f"{lang}.{site_suffix}.org"
 
 
 @app.route("/")
@@ -37,37 +18,7 @@ def fetch_articles():
         return jsonify({"error": "No code provided"}), 400
 
     try:
-        resp = requests.get(
-            f"https://fountain.toolforge.org/api/editathons/{code}")
-        resp.raise_for_status()
-        fountain_data = resp.json()
-
-        wiki_code = fountain_data.get("wiki", "wiki:bn")
-        site_url = get_wiki_url(wiki_code)
-
-        user_articles = defaultdict(list)
-        for article in fountain_data.get("articles", []):
-            user = article.get("user")
-            name = article.get("name")
-            status = "অপর্যালোচিত"  # Default status
-
-            # Correct acceptance/rejection logic
-            marks = article.get("marks", [])
-            if marks:
-                rejected = any(review.get("marks", {}).get("0")
-                               in [1, 2] for review in marks)
-                if rejected:
-                    status = "গৃহীত হয়নি"
-                else:
-                    status = "গৃহীত হয়েছে"
-
-            if user and name:
-                user_articles[user].append({
-                    "name": name,
-                    "status": status,
-                    "reviews": len(marks)
-                })
-
+        user_articles, site_url = fountain.get_articles_data(code)
         return jsonify({"articles": user_articles, "site_url": site_url})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -81,29 +32,7 @@ def jury_stats():
         return jsonify({"error": "No code provided"}), 400
 
     try:
-        resp = requests.get(
-            f"https://fountain.toolforge.org/api/editathons/{code}")
-        resp.raise_for_status()
-        fountain_data = resp.json()
-
-        jury_stats = {}
-        for article in fountain_data.get("articles", []):
-            for review in article.get("marks", []):
-                jury = review.get("user")
-                if not jury:
-                    continue
-                if jury not in jury_stats:
-                    jury_stats[jury] = {"total": 0,
-                                        "accepted": 0, "rejected": 0}
-                jury_stats[jury]["total"] += 1
-                decision = review.get("marks", {}).get("0")
-                if decision == 0:
-                    jury_stats[jury]["accepted"] += 1
-                elif decision in [1, 2]:
-                    jury_stats[jury]["rejected"] += 1
-
-        sorted_juries = sorted(
-            jury_stats.items(), key=lambda x: x[1]["total"], reverse=True)
+        sorted_juries = fountain.get_jury_stats_data(code)
         return jsonify({"raw": sorted_juries})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -112,42 +41,14 @@ def jury_stats():
 @app.route("/editathons", methods=["GET"])
 def editathons():
     try:
-        resp = requests.get(
-            "https://fountain.toolforge.org/api/editathons",
-            timeout=10
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-        result = []
-        for e in data:
-            wiki_code = e.get("wiki", "wiki:en")
-
-            if ':' in wiki_code:
-                _, lang = wiki_code.split(':', 1)
-            else:
-                lang = wiki_code
-
-            if lang != "bn":
-                continue
-
-            site_url = get_wiki_url(wiki_code)
-            result.append({
-                "code": e.get("code"),
-                "name": e.get("name"),
-                "description": e.get("description"),
-                "start": e.get("start"),
-                "finish": e.get("finish"),
-                "wiki": wiki_code,
-                "site_url": site_url
-            })
-
+        result = fountain.get_bn_editathons()
+        print(result)
         return jsonify({"editathons": result})
-
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
-    # app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
