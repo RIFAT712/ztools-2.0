@@ -70,14 +70,24 @@ body {
 
 .header {
   margin-bottom: 40px;
-  text-align: center;
+  width: 100%;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+  text-align: left;
 }
 
 .title {
   font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-bottom: 24px;
+  margin: 0;
   color: var(--text);
 }
 
@@ -87,19 +97,28 @@ body {
 }
 
 #editathon-select {
-  text-align: center;
+  text-align: left;
   width: 100%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
   border: 1px solid var(--border) !important;
   background-color: var(--card);
   color: var(--text);
   font-size: 1rem;
   cursor: pointer;
   appearance: none;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   box-shadow: var(--shadow);
-  transition: border-color 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a0a0a0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px;
+}
+
+#editathon-select:hover {
+  border-color: var(--muted) !important;
+  transform: translateY(-1px);
 }
 
 #editathon-select:focus {
@@ -144,7 +163,9 @@ body {
   box-shadow: var(--shadow);
 }
 
-.btn:disabled {
+.btn:disabled,
+input:disabled,
+select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
@@ -221,8 +242,9 @@ td {
   font-size: 1rem;
 }
 
-td.left {
-  text-align: left;
+td.left,
+th.left {
+  text-align: center;
 }
 
 .user-row:hover {
@@ -275,27 +297,173 @@ body.light .error {
   margin-bottom: 8px;
 }
 
+.auth-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 #themeToggle {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   box-shadow: var(--shadow);
-  z-index: 1000;
   transition: all 0.2s;
+  font-size: 1.1rem;
+  margin: 0;
+  order: 2;
 }
 
-#themeToggle:hover {
+.user-info {
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-weight: 500;
+  order: 1;
+}
+
+.btn-link {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  background: var(--card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  box-sizing: border-box;
+  order: 3;
+}
+
+.btn-link:hover {
   background: var(--btn-hover);
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+#editathon-search {
+  text-align: left;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+
+.suggestion-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+.suggestion-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--glass);
+  text-align: left;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background: var(--btn-hover);
+}
+
+.suggestion-item.active {
+  background: var(--glass);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 32px;
+  border-radius: 20px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.reason-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.reason-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.reason-item input {
+  width: 18px;
+  height: 18px;
+}
+
+textarea.custom-comment {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.copy-btn.sent {
+  background: var(--glass);
+  color: var(--muted);
+  border-color: var(--border);
+  cursor: default;
 }
 
 @media (max-width: 768px) {

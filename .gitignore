@@ -1,0 +1,6 @@
+.env
+sent_logs.json
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store

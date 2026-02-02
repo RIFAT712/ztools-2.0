@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="bn">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>আমার পর্যালোচনা</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <h1 class="title">আমার পর্যালোচনা</h1>
+                <div class="auth-box">
+                    <button id="themeToggle" title="থিম পরিবর্তন করুন"></button>
+                    {% if username %}
+                    <span class="user-info"><strong>{{ username }}</strong></span>
+                    <a href="{{ url_for('index') }}" class="btn-link">মূল পাতা</a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn-link"
+                        style="color: #ff4d4d; border-color: #ff4d4d;">লগ-আউট</a>
+                    {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="btn-link">লগ-ইন</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="controls">
+                <label for="editathon-select" class="input-label">একটি এডিটাথন নির্বাচন করুন:</label>
+                <select id="editathon-select" class="btn" disabled>
+                    <option value="">এডিটাথন লোড হচ্ছে...</option>
+                </select>
+
+                <div class="buttons">
+                    <button id="fetchReviewsBtn" class="btn">পর্যালোচনা তালিকা দেখুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress" id="progressBar"></div>
+        </div>
+
+        <div class="card hidden" id="resultCard">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <div class="small" id="resultTitle">আপনার প্রদানকৃত মন্তব্যসমূহ</div>
+            </div>
+            <div class="table-wrap" id="tableWrap"></div>
+        </div>
+    </div>
+
+    <script type="module" src="{{ url_for('static', filename='js/comment.js') }}"></script>
+</body>
+
+</html>

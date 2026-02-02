@@ -12,7 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const countBtn = document.getElementById('countBtn');
     const juryBtn = document.getElementById('juryBtn');
     const rejectedBtn = document.getElementById('rejectedBtn');
-    const select = document.getElementById("editathon-select");
+    const searchInput = document.getElementById("editathon-search");
+    const suggestionList = document.getElementById("suggestion-list");
+
+    let allEditathons = [];
 
     const ui = {
         countBtn,
@@ -58,20 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadEditathons() {
         try {
+            searchInput.disabled = true;
+            searchInput.placeholder = "এডিটাথন লোড হচ্ছে...";
             const resp = await fetch("/editathons");
             if (!resp.ok) throw new Error("Network response was not ok");
 
             const data = await resp.json();
-
-            // Clear existing options except the first placeholder
-            select.innerHTML = '<option value="">এডিটাথন নির্বাচন করুন</option>';
-
-            data.editathons.forEach(e => {
-                const option = document.createElement("option");
-                option.value = e.code;
-                option.textContent = e.name;
-                select.appendChild(option);
-            });
+            allEditathons = data.editathons;
+            searchInput.disabled = false;
+            searchInput.placeholder = "এডিটাথন খুঁজুন...";
         } catch (err) {
             console.error("Failed to load editathons:", err);
             ui.errorEl.classList.remove('hidden');
@@ -79,12 +77,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function renderSuggestions(filter = "") {
+        const filtered = allEditathons.filter(e =>
+            e.name.toLowerCase().includes(filter.toLowerCase()) ||
+            e.code.toLowerCase().includes(filter.toLowerCase())
+        );
+
+        if (filtered.length === 0) {
+            suggestionList.classList.add('hidden');
+            return;
+        }
+
+        suggestionList.innerHTML = filtered.map(e => `
+            <div class="suggestion-item ${e.code === activeFountainCode ? 'active' : ''}" data-code="${e.code}">
+                ${e.name}
+            </div>
+        `).join('');
+        suggestionList.classList.remove('hidden');
+    }
+
     // --- Event Listeners ---
 
-    // Update the variable whenever the dropdown changes
-    select.addEventListener('change', (e) => {
-        activeFountainCode = e.target.value;
-        ui.errorEl.classList.add('hidden');
+    searchInput.addEventListener('input', (e) => {
+        renderSuggestions(e.target.value);
+    });
+
+    searchInput.addEventListener('focus', () => {
+        renderSuggestions(searchInput.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-container')) {
+            suggestionList.classList.add('hidden');
+        }
+    });
+
+    suggestionList.addEventListener('click', (e) => {
+        const item = e.target.closest('.suggestion-item');
+        if (item) {
+            activeFountainCode = item.dataset.code;
+            searchInput.value = item.textContent.trim();
+            suggestionList.classList.add('hidden');
+            ui.errorEl.classList.add('hidden');
+        }
     });
 
     countBtn.addEventListener('click', () => {

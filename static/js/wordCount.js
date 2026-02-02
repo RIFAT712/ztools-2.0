@@ -205,14 +205,14 @@ function renderArticleTable(totals, ui) {
 
         html += `<tr class="articles-row hidden" data-user="${escapeHtml(r.user)}"><td colspan="7">
             <table class="inner-table">
-                <thead><tr><th>#</th><th>নিবন্ধ</th><th>শব্দ</th><th>অবস্থা</th></tr></thead>
+                <thead><tr><th>#</th><th class="left">নিবন্ধ</th><th>শব্দ</th><th>অবস্থা</th></tr></thead>
                 <tbody>`;
 
         r.articles.forEach((a, j) => {
             html += `<tr class="${a.isRedirect ? 'redirect' : ''}">
                 <td>${formatBn(j + 1)}</td>
-                <td>
-                  <span style="display:flex; align-items:center; justify-content:center;">
+                <td class="left">
+                  <span style="display:flex; align-items:center; justify-content:flex-start;">
                     <span>${escapeHtml(a.title)}</span>
                     ${a.actualTitle ? `<span style="font-size:0.7em; opacity:0.6; margin-left:5px;">(${escapeHtml(a.actualTitle)})</span>` : ''}
                   </span>
