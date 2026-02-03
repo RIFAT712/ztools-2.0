@@ -1,20 +1,21 @@
-from werkzeug.middleware.proxy_fix import ProxyFix
+# app.py
+
+# Step 1: Load environment variables immediately.
+# This MUST be done before importing any other local modules like 'auth'.
 import fountain
 import requests
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from auth import auth, oauth
-from dotenv import load_dotenv
-import os
+from auth import auth, oauth  # 'auth' can now access the loaded variables
 from datetime import timedelta
+import os
+from dotenv import load_dotenv
 load_dotenv()
 
+# Step 2: Now, import everything else.
 
 app = Flask(__name__)
-# Enable ProxyFix to correctly handle HTTPS behind Toolforge proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1,
-                        x_host=1, x_port=1, x_prefix=1)
 
-# Ensure a stable secret key for session persistence
+# Use the SERVER_NAME to ensure consistent URLs and fix the 'mismatching_state' error
 app.secret_key = os.getenv("SECRET_KEY", "ztools_permanent_secret_123")
 app.config.update(
     SESSION_COOKIE_NAME='ztools_session',
@@ -41,6 +42,8 @@ def comment():
 def index():
     return render_template("index.html")
 
+# --- All your other routes remain unchanged ---
+
 
 @app.route("/fetch_articles", methods=["POST"])
 def fetch_articles():
@@ -48,7 +51,6 @@ def fetch_articles():
     code = data.get("code", "").strip()
     if not code:
         return jsonify({"error": "No code provided"}), 400
-
     try:
         user_articles, site_url = fountain.get_articles_data(code)
         return jsonify({"articles": user_articles, "site_url": site_url})
@@ -62,7 +64,6 @@ def jury_stats():
     code = data.get("code", "").strip()
     if not code:
         return jsonify({"error": "No code provided"}), 400
-
     try:
         sorted_juries = fountain.get_jury_stats_data(code)
         return jsonify({"raw": sorted_juries})
@@ -77,12 +78,10 @@ def user_reviews():
 
     if not session.get('username'):
         return jsonify({"error": "Unauthorized"}), 401
-
     data = request.json
     code = data.get("code", "").strip()
     if not code:
         return jsonify({"error": "No code provided"}), 400
-
     try:
         reviews, site_url = fountain.get_user_reviews(
             code, session.get('username'))
@@ -115,4 +114,4 @@ def jury_editathons():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
+    app.run(host="0.0.0.0", port=3000)

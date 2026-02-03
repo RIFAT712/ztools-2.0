@@ -1,15 +1,19 @@
+# auth.py
+
 import os
 import requests
 import time
 import json
 from flask import Blueprint, request, redirect, url_for, session, jsonify
 from authlib.integrations.flask_client import OAuth
-
+from dotenv import load_dotenv
+load_dotenv()
 auth = Blueprint('auth', __name__)
 
-CONSUMER_KEY = os.getenv("CONSUMER_KEY", "").strip('"')
-CONSUMER_SECRET = os.getenv("CONSUMER_SECRET", "").strip('"')
-USER_AGENT = os.getenv("USER_AGENT", "").strip('"')
+# These will now work correctly because app.py calls load_dotenv() before importing this file.
+CONSUMER_KEY = os.getenv("CONSUMER_KEY")
+CONSUMER_SECRET = os.getenv("CONSUMER_SECRET")
+USER_AGENT = os.getenv("USER_AGENT")
 
 # Wikimedia OAuth 2.0 Endpoints
 AUTHORIZE_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/authorize"
@@ -18,6 +22,7 @@ PROFILE_URL = "https://meta.wikimedia.org/w/rest.php/oauth2/resource/profile"
 API_URL = "https://bn.wikipedia.org/w/api.php"
 
 oauth = OAuth()
+
 oauth.register(
     name='wikimedia',
     client_id=CONSUMER_KEY,
@@ -25,12 +30,13 @@ oauth.register(
     access_token_url=TOKEN_URL,
     authorize_url=AUTHORIZE_URL,
     token_endpoint_auth_method='client_secret_basic',
-    client_kwargs={'scope': 'openid'}, # Standard base scope
 )
 
 
 def get_access_token():
     return session.get('access_token_data')
+
+# --- All your other functions and routes remain unchanged ---
 
 
 LOG_FILE = "sent_logs.json"
@@ -100,7 +106,6 @@ def post_talk():
 
         csrftoken = res_data.get("query", {}).get(
             "tokens", {}).get("csrftoken")
-
         if not csrftoken:
             return jsonify({"error": "Token Error", "details": "Could not fetch CSRF token. Check your OAuth permissions."}), 403
 
@@ -130,6 +135,7 @@ def post_talk():
 def login():
     session.permanent = True
     redirect_uri = url_for('auth.oauth_callback', _external=True)
+    print(f"DEBUG: Redirect URI being sent: {redirect_uri}")
     return oauth.wikimedia.authorize_redirect(redirect_uri)
 
 
@@ -145,6 +151,7 @@ def oauth_callback():
 
         return redirect(url_for('comment'))
     except Exception as e:
+        print(f"\nERROR during OAuth callback: {e}\n")
         return f"OAuth 2.0 callback error: {str(e)}", 500
 
 
