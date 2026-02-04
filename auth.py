@@ -140,7 +140,7 @@ def post_talk():
         # 2. Post Message
         post_params = {
             "action": "edit",
-            "title": f"User talk:R1F4T/{target_user}",  # for testing purpose
+            "title": f"User talk:{target_user}",  # for testing purpose
             "section": "new",
             "summary": subject,
             "text": message,
