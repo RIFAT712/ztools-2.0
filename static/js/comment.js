@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Build Tab Navigation
             let html = `
                 <div class="tab-nav">
-                    <button class="tab-btn active" data-tab="accepted">গৃহীত (${accepted.length})</button>
+                    <button class="tab-btn active" data-tab="accepted">গৃহীত নিবন্ধ (${accepted.length})</button>
                     <button class="tab-btn" data-tab="rejected">বাতিলকৃত নিবন্ধ (${rejected.length})</button>
                 </div>
             `;
