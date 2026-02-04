@@ -66,6 +66,7 @@ def load_logs():
 
 
 def save_log(editathon, article, recipient, sender):
+    print("--- LOGGING DEBUG: SAVING TO NEW PATH ---")
     """Writes to the JSON log file using a thread lock to prevent corruption."""
     with log_lock:
         logs = load_logs()
