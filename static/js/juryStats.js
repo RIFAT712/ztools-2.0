@@ -20,7 +20,7 @@ export async function loadJuryStats(code, endpoints, ui) {
 
         const juries = data.raw || [];
         progressWrap.style.display = 'none';
-        
+
         if (juries.length === 0) {
             juryCard.classList.add('hidden');
             return;
