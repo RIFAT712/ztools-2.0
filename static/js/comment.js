@@ -134,7 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         reviews.forEach(r => {
             const articleUrl = `https://${siteUrl}/wiki/${encodeURIComponent(r.name)}`;
-            const userUrl = `https://${siteUrl}/wiki/User:${encodeURIComponent(r.submitter)}`;
+            // const userUrl = `https://${siteUrl}/wiki/User:${encodeURIComponent(r.submitter)}`;
+            const userUrl = `https://${siteUrl}/wiki/User:R1F4T/${encodeURIComponent(r.submitter)}`;
             const isSent = sentForThisEditathon[r.name];
 
             html += `
