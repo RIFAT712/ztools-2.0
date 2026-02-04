@@ -94,19 +94,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const accepted = reviews.filter(r => r.decision === 'accepted');
             const rejected = reviews.filter(r => r.decision === 'rejected');
 
-            let html = '';
+            // Build Tab Navigation
+            let html = `
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="accepted">গৃহীত (${accepted.length})</button>
+                    <button class="tab-btn" data-tab="rejected">গৃহীত হয়নি (${rejected.length})</button>
+                </div>
+            `;
 
+            // Accepted Content
+            html += `<div id="accepted-content" class="tab-content active">`;
             if (accepted.length > 0) {
-                html += `<h3 style="margin-top:0; color:var(--text); border-bottom: 2px solid var(--border); padding-bottom: 8px;">গৃহীত নিবন্ধ (${accepted.length})</h3>`;
                 html += renderTable(accepted, siteUrl, logs);
+            } else {
+                html += '<p style="text-align:center; padding:20px; color:var(--muted);">কোনো গৃহীত নিবন্ধ নেই।</p>';
             }
+            html += `</div>`;
 
+            // Rejected Content
+            html += `<div id="rejected-content" class="tab-content hidden">`;
             if (rejected.length > 0) {
-                html += `<h3 style="margin-top:32px; color:var(--text); border-bottom: 2px solid var(--border); padding-bottom: 8px;">গৃহীত হয়নি (${rejected.length})</h3>`;
                 html += renderTable(rejected, siteUrl, logs);
+            } else {
+                html += '<p style="text-align:center; padding:20px; color:var(--muted);">কোনো প্রত্যাখ্যাত নিবন্ধ নেই।</p>';
             }
+            html += `</div>`;
 
-            ui.tableWrap.innerHTML = html || '<p style="text-align:center; padding:20px;">কোনো নির্দিষ্ট সিদ্ধান্ত পাওয়া যায়নি।</p>';
+            ui.tableWrap.innerHTML = html;
+
+            // Add Tab Event Listeners
+            const tabs = ui.tableWrap.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+
+                    // Hide all content
+                    ui.tableWrap.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                    // Show target content
+                    const targetId = tab.dataset.tab + '-content';
+                    document.getElementById(targetId).classList.remove('hidden');
+                });
+            });
 
             // Add event listeners for talk buttons
             ui.tableWrap.querySelectorAll('.talk-btn').forEach(btn => {
