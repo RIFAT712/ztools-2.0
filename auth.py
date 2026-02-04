@@ -25,9 +25,9 @@ API_URL = "https://bn.wikipedia.org/w/api.php"
 
 # --- Logging Setup ---
 # Using HOME_DIR ensures we are outside the restricted source code folders
-HOME_DIR = os.path.expanduser("~")
-LOG_DIR = os.path.join(HOME_DIR, "logs")
-LOG_FILE = os.path.join(LOG_DIR, "sent_logs.json")
+LOG_FILE = "/data/project/ztools/www/python/src/logs/sent_logs.json"
+# LOG_FILE = "C:\\Users\\Desktop\\Desktop\\ztools\\ztools\\sent_logs.json"
+LOG_DIR = os.path.dirname(LOG_FILE)
 
 # Create the logs directory immediately if it doesn't exist
 os.makedirs(LOG_DIR, exist_ok=True)
