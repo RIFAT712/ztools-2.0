@@ -1,15 +1,43 @@
 import { formatBn, escapeHtml } from './utils.js';
 
+function handleRejectedDownload(type, articles, wikitable) {
+    if (type === 'csv') {
+        let csv = 'Article Name\n';
+        articles.forEach(name => {
+            csv += `"${name}"\n`;
+        });
+        downloadFile(csv, 'ztools_rejected_articles.csv', 'text/csv');
+    } else if (type === 'json') {
+        const json = JSON.stringify(articles, null, 2);
+        downloadFile(json, 'ztools_rejected_articles.json', 'application/json');
+    } else if (type === 'wikitable') {
+        navigator.clipboard.writeText(wikitable).then(() => {
+            alert('উইকিটেবিল ক্লিপবোর্ডে কপি করা হয়েছে!');
+        });
+    }
+}
+
+function downloadFile(content, fileName, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
 export async function loadRejectedArticles(code, endpoints, ui) {
     const { countBtn, juryBtn, progressWrap, progressBar, resultCard, tableWrap, summaryEl, errorEl } = ui;
 
     countBtn.disabled = juryBtn.disabled = true;
     errorEl.classList.add('hidden');
     progressWrap.style.display = 'block';
-    progressBar.style.width = '0%';
+    progressBar.style.width = '100%';
+    progressBar.classList.add('loading-animation');
 
     try {
-        const resp = await fetch(endpoints.fountainEndpoint, {
+        const resp = await fetch('/rejected_articles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code })
@@ -19,12 +47,8 @@ export async function loadRejectedArticles(code, endpoints, ui) {
 
         if (data.error) throw new Error(data.error);
 
-        const rejectedArticles = [];
-        Object.values(data.articles || {}).forEach(userArticles => {
-            userArticles.forEach(a => {
-                if (a.status === "গৃহীত হয়নি") rejectedArticles.push(a.name);
-            });
-        });
+        const rejectedArticles = data.rejected_articles || [];
+        const wikitable = data.wikitable || "";
 
         if (rejectedArticles.length === 0) {
             errorEl.classList.remove('hidden');
@@ -36,35 +60,17 @@ export async function loadRejectedArticles(code, endpoints, ui) {
         resultCard.classList.remove('hidden');
         summaryEl.textContent = `মোট গৃহীত হয়নি নিবন্ধ: ${formatBn(rejectedArticles.length)}`;
 
-        // Refresh toolbar
-        let toolbar = resultCard.querySelector('.copy-toolbar');
-        if (toolbar) toolbar.remove();
-        toolbar = document.createElement('div');
-        toolbar.className = 'copy-toolbar';
-        toolbar.style.marginBottom = '0.5em';
-        resultCard.prepend(toolbar);
-
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'কপি করুন';
-        copyBtn.className = 'copy-btn';
-        toolbar.appendChild(copyBtn);
-
-        copyBtn.onclick = () => {
-            let wikiTable = `{| class="wikitable sortable"
-! ক্রমিক !! নিবন্ধের নাম
-`;
-            rejectedArticles.forEach((name, index) => {
-                wikiTable += `|-
-| ${formatBn(index + 1)} || ${name}
-`;
+        // Hook up download dropdown
+        const downloadDropdown = resultCard.querySelector('#download-dropdown-container');
+        if (downloadDropdown) {
+            downloadDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    handleRejectedDownload(item.dataset.type, rejectedArticles, wikitable);
+                    downloadDropdown.querySelector('.dropdown-list').classList.add('hidden');
+                };
             });
-            wikiTable += `|}`;
-
-            navigator.clipboard.writeText(wikiTable).then(() => {
-                copyBtn.textContent = '✓ কপি হয়েছে';
-                setTimeout(() => copyBtn.textContent = 'কপি করুন', 2000);
-            });
-        };
+        }
 
         // Render Table
         let html = '<table><thead><tr><th style="width:10%;">ক্রমিক</th><th class="left">নিবন্ধের নাম</th></tr></thead><tbody>';
@@ -81,5 +87,6 @@ export async function loadRejectedArticles(code, endpoints, ui) {
         resultCard.classList.add('hidden');
     } finally {
         countBtn.disabled = juryBtn.disabled = false;
+        progressBar.classList.remove('loading-animation');
     }
 }

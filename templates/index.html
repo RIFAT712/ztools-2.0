@@ -28,11 +28,13 @@
       </div>
 
       <div class="controls">
-        <label for="editathon-search" class="input-label">একটি এডিটাথন নির্বাচন করুন:</label>
-        <div class="search-container">
-          <input type="text" id="editathon-search" class="btn" placeholder="এডিটাথন লোড হচ্ছে..." autocomplete="off"
-            disabled>
-          <div id="suggestion-list" class="suggestion-list hidden"></div>
+        <label class="input-label">একটি এডিটাথন নির্বাচন করুন:</label>
+        <div class="custom-dropdown" id="editathon-dropdown">
+            <button class="dropdown-trigger" id="dropdown-trigger" disabled>এডিটাথন লোড হচ্ছে...</button>
+            <div class="dropdown-list hidden" id="dropdown-list">
+                <!-- Options will be injected here -->
+            </div>
+            <input type="hidden" id="selected-editathon-code" value="">
         </div>
 
         <div class="buttons">
@@ -50,17 +52,32 @@
     </div>
 
     <div class="card hidden" id="resultCard" aria-live="polite">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="small" id="resultTitle">ফলাফল</div>
+        <div class="custom-dropdown download-dropdown" id="download-dropdown-container">
+            <button class="copy-btn dropdown-trigger download-trigger">ডাউনলোড</button>
+            <div class="dropdown-list hidden">
+                <div class="dropdown-item" data-type="csv">CSV ডাউনলোড</div>
+                <div class="dropdown-item" data-type="wikitable">উইকিটেবিল কপি</div>
+                <div class="dropdown-item" data-type="json">JSON ডাউনলোড</div>
+            </div>
+        </div>
       </div>
       <div class="table-wrap" id="tableWrap"></div>
       <div id="summary" class="small" style="margin-top:10px;text-align:right;color:var(--muted)"></div>
     </div>
 
     <div class="card hidden" id="juryCard">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="small">পর্যালোচনা পরিসংখ্যান</div>
-        <button class="copy-btn" id="copyJuryBtn">উইকিটেবিল কপি করুন</button>
+        <div class="custom-dropdown download-dropdown" id="jury-download-dropdown">
+            <button class="copy-btn dropdown-trigger download-trigger">ডাউনলোড</button>
+            <div class="dropdown-list hidden">
+                <div class="dropdown-item" data-type="csv">CSV ডাউনলোড</div>
+                <div class="dropdown-item" data-type="wikitable">উইকিটেবিল কপি</div>
+                <div class="dropdown-item" data-type="json">JSON ডাউনলোড</div>
+            </div>
+        </div>
       </div>
       <div class="table-wrap" id="juryParsedWrap"></div>
     </div>
