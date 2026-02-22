@@ -15,7 +15,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Constants and Configuration
-DB_FILE = "ztools.db"
+# Use absolute path for DB to avoid Toolforge path issues
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, "ztools.db")
 
 WIKI_PREFIXES = {
     "wiki": "wikipedia",
@@ -52,7 +54,7 @@ def init_db():
     ''')
     
     # Migration from JSON to SQLite
-    json_file = "wordcount.json"
+    json_file = os.path.join(BASE_DIR, "wordcount.json")
     if os.path.exists(json_file):
         try:
             with open(json_file, 'r', encoding='utf-8') as f:
@@ -151,10 +153,15 @@ def get_articles_metadata(titles, site_url):
     api_url = f"https://{site_url}/w/api.php"
     metadata = {}
     
-    batches = [titles[i:i+50] for i in range(0, len(titles), 50)]
+    if not titles:
+        return metadata
+        
+    # Use smaller batch size for non-ASCII titles to avoid URL length issues
+    batch_size = 25
+    batches = [titles[i:i+batch_size] for i in range(0, len(titles), batch_size)]
     
     def fetch_batch(batch):
-        params = {
+        data = {
             "action": "query",
             "titles": "|".join(batch),
             "prop": "revisions",
@@ -162,12 +169,17 @@ def get_articles_metadata(titles, site_url):
             "format": "json",
             "redirects": "true"
         }
-        try:
-            res = session.get(api_url, params=params, timeout=10)
-            if res.status_code == 200:
-                return res.json(), batch
-        except Exception as e:
-            print(f"Batch fetch failed: {e}")
+        for attempt in range(3):
+            try:
+                # Use POST for longer batches
+                res = session.post(api_url, data=data, timeout=20)
+                if res.status_code == 200:
+                    return res.json(), batch
+                elif res.status_code == 429:
+                    time.sleep(2 * (attempt + 1))
+            except Exception as e:
+                print(f"Batch fetch attempt {attempt+1} failed: {e}")
+                time.sleep(1)
         return None, batch
 
     with ThreadPoolExecutor(max_workers=5) as executor:
@@ -178,27 +190,46 @@ def get_articles_metadata(titles, site_url):
         query = data.get("query", {})
         pages = query.get("pages", {})
         
+        # Build normalization and redirect maps
         norm_map = {n["from"]: n["to"] for n in query.get("normalized", [])}
         redir_map = {r["from"]: r["to"] for r in query.get("redirects", [])}
         
+        # Track where each original title ended up
         final_to_orig = defaultdict(list)
         for orig in batch:
             current = orig
             if current in norm_map: current = norm_map[current]
-            while current in redir_map: current = redir_map[current]
+            # Follow redirects
+            seen = {current}
+            while current in redir_map:
+                current = redir_map[current]
+                if current in seen: break # Circular redirect safety
+                seen.add(current)
             final_to_orig[current].append(orig)
         
         for page_id, page_info in pages.items():
             final_title = page_info.get("title")
             if "revisions" in page_info:
                 timestamp = page_info["revisions"][0]["timestamp"]
+                # Map back to all original titles that led here
                 for orig in final_to_orig.get(final_title, []):
                     metadata[orig] = {
                         "timestamp": timestamp,
                         "actual_title": final_title
                     }
+                # Also map the final title itself just in case
+                metadata[final_title] = {
+                    "timestamp": timestamp,
+                    "actual_title": final_title
+                }
             
     return metadata
+
+
+def get_article_timestamp(title, site_url):
+    """Fetches timestamp for a single article, specifically as a fallback."""
+    res = get_articles_metadata([title], site_url)
+    return res.get(title)
 
 
 def get_wiki_url(fountain_wiki_code):
@@ -236,7 +267,7 @@ def get_articles_data(code):
     user_articles = defaultdict(list)
     for article in fountain_data.get("articles", []):
         user = article.get("user")
-        name = article.get("name")
+        name = article.get("name", "").strip()
         marks = article.get("marks", [])
 
         # Status logic
@@ -382,6 +413,10 @@ def get_word_counts(code):
         words, actual_title, is_redirect = count_article_words(task["title"], site_url)
         ts = None
         m = metadata.get(task["title"])
+        if not m:
+            # Try to fetch specifically if missing in initial batch
+            m = get_article_timestamp(task["title"], site_url)
+            
         if m:
             ts = m["timestamp"]
             actual_title = m["actual_title"]
