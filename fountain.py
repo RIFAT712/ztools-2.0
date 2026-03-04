@@ -391,8 +391,13 @@ def realtime_stream_monitor():
                     logging.error(f"[Realtime] Failed to connect: {response.status_code}")
                     time.sleep(30); continue
                 
-                client = EventSource(response.raw)
+                client = EventSource(response)
+                event_count = 0
                 for event in client.events():
+                    event_count += 1
+                    if event_count % 500 == 0:
+                        logging.info(f"[Realtime] Stream alive: {event_count} events processed...")
+                        
                     if not event.data: continue
                     
                     try:
