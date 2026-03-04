@@ -391,7 +391,7 @@ def realtime_stream_monitor():
                     logging.error(f"[Realtime] Failed to connect: {response.status_code}")
                     time.sleep(30); continue
                 
-                client = EventSource(response)
+                client = EventSource(response.raw)
                 for event in client.events():
                     if not event.data: continue
                     
@@ -415,13 +415,16 @@ def realtime_stream_monitor():
                                 codes = [row[0] for row in exists]
                                 logging.info(f"[Realtime MATCH] Article '{title}' found in editathons: {codes}. Triggering updates...")
                                 for code in codes:
-                                    # Run in a new task to not block the listener
-                                    asyncio.run(process_word_counts_async(code, source=f"Realtime:{user}"))
+                                    # Run in a NEW THREAD to not block the listener
+                                    threading.Thread(
+                                        target=lambda c=code, u=user: asyncio.run(process_word_counts_async(c, source=f"Realtime:{u}")),
+                                        daemon=True
+                                    ).start()
                     except Exception as json_e:
                         # logging.error(f"[Realtime] JSON Error: {str(json_e)}")
                         pass
         except Exception as e:
-            logging.error(f"[Realtime] Loop error: {str(e)}")
+            logging.error(f"[Realtime] Loop error: {repr(e)}")
             time.sleep(10)
 
 threading.Thread(target=background_monitor, daemon=True).start()

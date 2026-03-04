@@ -5,4 +5,4 @@ authlib
 gunicorn
 beautifulsoup4
 aiohttp
-sseclient
+sseclient-py
