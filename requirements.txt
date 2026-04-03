@@ -3,3 +3,6 @@ requests==2.32.3
 python-dotenv
 authlib
 gunicorn
+beautifulsoup4
+aiohttp
+sseclient-py

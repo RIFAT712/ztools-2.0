@@ -12,8 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const countBtn = document.getElementById('countBtn');
     const juryBtn = document.getElementById('juryBtn');
     const rejectedBtn = document.getElementById('rejectedBtn');
-    const searchInput = document.getElementById("editathon-search");
-    const suggestionList = document.getElementById("suggestion-list");
+    const dropdownTrigger = document.getElementById("dropdown-trigger");
+    const dropdownList = document.getElementById("dropdown-list");
+    const selectedCodeInput = document.getElementById("selected-editathon-code");
 
     let allEditathons = [];
 
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Helper to validate selection and clear UI before running a task
      */
     function executeAction(actionFunc) {
-        const code = activeFountainCode.trim();
+        const code = selectedCodeInput.value.trim();
 
         if (!code) {
             ui.errorEl.classList.remove('hidden');
@@ -61,15 +62,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadEditathons() {
         try {
-            searchInput.disabled = true;
-            searchInput.placeholder = "এডিটাথন লোড হচ্ছে...";
+            dropdownTrigger.disabled = true;
+            dropdownTrigger.textContent = "এডিটাথন লোড হচ্ছে...";
             const resp = await fetch("/editathons");
             if (!resp.ok) throw new Error("Network response was not ok");
 
             const data = await resp.json();
             allEditathons = data.editathons;
-            searchInput.disabled = false;
-            searchInput.placeholder = "এডিটাথন খুঁজুন...";
+            
+            // Populate list
+            renderDropdownItems();
+            
+            dropdownTrigger.textContent = "একটি এডিটাথন নির্বাচন করুন";
+            dropdownTrigger.disabled = false;
         } catch (err) {
             console.error("Failed to load editathons:", err);
             ui.errorEl.classList.remove('hidden');
@@ -77,48 +82,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderSuggestions(filter = "") {
-        const filtered = allEditathons.filter(e =>
-            e.name.toLowerCase().includes(filter.toLowerCase()) ||
-            e.code.toLowerCase().includes(filter.toLowerCase())
-        );
-
-        if (filtered.length === 0) {
-            suggestionList.classList.add('hidden');
-            return;
-        }
-
-        suggestionList.innerHTML = filtered.map(e => `
-            <div class="suggestion-item ${e.code === activeFountainCode ? 'active' : ''}" data-code="${e.code}">
+    function renderDropdownItems() {
+        dropdownList.innerHTML = allEditathons.map(e => `
+            <div class="dropdown-item" data-code="${e.code}">
                 ${e.name}
             </div>
         `).join('');
-        suggestionList.classList.remove('hidden');
     }
 
     // --- Event Listeners ---
 
-    searchInput.addEventListener('input', (e) => {
-        renderSuggestions(e.target.value);
-    });
-
-    searchInput.addEventListener('focus', () => {
-        renderSuggestions(searchInput.value);
-    });
-
+    // Generic Dropdown Toggle
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-container')) {
-            suggestionList.classList.add('hidden');
+        const trigger = e.target.closest('.dropdown-trigger');
+        const item = e.target.closest('.dropdown-item');
+        const container = e.target.closest('.custom-dropdown');
+        
+        // Close all dropdowns except the one being toggled
+        document.querySelectorAll('.dropdown-list').forEach(list => {
+            if (!container || list !== container.querySelector('.dropdown-list') || item) {
+                list.classList.add('hidden');
+            }
+        });
+
+        if (trigger && container && !item) {
+            const list = container.querySelector('.dropdown-list');
+            if (list) list.classList.toggle('hidden');
         }
     });
 
-    suggestionList.addEventListener('click', (e) => {
-        const item = e.target.closest('.suggestion-item');
+    dropdownList.addEventListener('click', (e) => {
+        const item = e.target.closest('.dropdown-item');
         if (item) {
-            activeFountainCode = item.dataset.code;
-            searchInput.value = item.textContent.trim();
-            suggestionList.classList.add('hidden');
+            const code = item.dataset.code;
+            const name = item.textContent.trim();
+            
+            selectedCodeInput.value = code;
+            dropdownTrigger.textContent = name;
+            
             ui.errorEl.classList.add('hidden');
+            
+            // Highlight selected item
+            dropdownList.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
         }
     });
 

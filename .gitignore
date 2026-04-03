@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
+monitor*.log
+*.bak
+test_match.db
+fountain_titles.txt
+ramzan_titles.txt

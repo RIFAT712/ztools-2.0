@@ -4,7 +4,8 @@
 # This MUST be done before importing any other local modules like 'auth'.
 import fountain
 import requests
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+import json
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response, stream_with_context
 from auth import auth, oauth  # 'auth' can now access the loaded variables
 from datetime import timedelta
 import os
@@ -42,8 +43,6 @@ def comment():
 def index():
     return render_template("index.html")
 
-# --- All your other routes remain unchanged ---
-
 
 @app.route("/fetch_articles", methods=["POST"])
 def fetch_articles():
@@ -65,8 +64,39 @@ def jury_stats():
     if not code:
         return jsonify({"error": "No code provided"}), 400
     try:
-        sorted_juries = fountain.get_jury_stats_data(code)
-        return jsonify({"raw": sorted_juries})
+        sorted_juries, wikitable = fountain.get_jury_stats_data(code)
+        return jsonify({"raw": sorted_juries, "wikitable": wikitable})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/count_words", methods=["POST"])
+def count_words():
+    data = request.json
+    code = data.get("code", "").strip()
+    if not code:
+        return jsonify({"error": "No code provided"}), 400
+
+    def generate():
+        try:
+            for chunk in fountain.get_word_counts(code):
+                yield json.dumps(chunk) + "\n"
+        except Exception as e:
+            yield json.dumps({"error": str(e)}) + "\n"
+
+    return Response(stream_with_context(generate()), mimetype="application/x-ndjson")
+
+
+@app.route("/rejected_articles", methods=["POST"])
+def rejected_articles():
+    data = request.json
+    code = data.get("code", "").strip()
+    if not code:
+        return jsonify({"error": "No code provided"}), 400
+    try:
+        rejected_articles, wikitable = fountain.get_rejected_articles_data(
+            code)
+        return jsonify({"rejected_articles": rejected_articles, "wikitable": wikitable})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
