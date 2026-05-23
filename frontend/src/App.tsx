@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate, useLocation, Routes, Route } from 'react-router-dom';
+import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { EditathonSelector } from './components/EditathonSelector';
 import { ProgressBar } from './components/ProgressBar';
 import { toBengaliDigits } from './utils';
-import { Download, Copy, Award, ExternalLink, Moon, Sun, LogIn, LogOut, MessageSquare, AlertCircle } from 'lucide-react';
+import { Download, Copy, Award, AlertCircle } from 'lucide-react';
 
 axios.defaults.baseURL = 'http://localhost:3000';
 axios.defaults.withCredentials = true;
@@ -256,9 +256,9 @@ const AppContent: React.FC = () => {
   }, [wordCountData]);
 
   const renderBadge = (user: string) => {
-    if (user === topPerformers.gold) return <Award size={18} color="#ffd700" title="১ম স্থান (গৃহীত শব্দ)" fill="#ffd70033" />;
-    if (user === topPerformers.silver) return <Award size={18} color="#c0c0c0" title="২য় স্থান (গৃহীত শব্দ)" fill="#c0c0c033" />;
-    if (user === topPerformers.bronze) return <Award size={18} color="#cd7f32" title="৩য় স্থান (গৃহীত শব্দ)" fill="#cd7f3233" />;
+    if (user === topPerformers.gold) return <Award size={18} color="#ffd700" fill="#ffd70033" />;
+    if (user === topPerformers.silver) return <Award size={18} color="#c0c0c0" fill="#c0c0c033" />;
+    if (user === topPerformers.bronze) return <Award size={18} color="#cd7f32" fill="#cd7f3233" />;
     return null;
   };
 
