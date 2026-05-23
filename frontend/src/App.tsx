@@ -7,7 +7,8 @@ import { ProgressBar } from './components/ProgressBar';
 import { toBengaliDigits } from './utils';
 import { Download, Copy, Award, AlertCircle } from 'lucide-react';
 
-axios.defaults.baseURL = 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3000' : 'https://ztools.toolforge.org';
+axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true;
 
 interface Editathon {
@@ -85,7 +86,7 @@ const AppContent: React.FC = () => {
     setSortConfig({ key: 'accepted', direction: 'desc' });
 
     try {
-      const response = await fetch(`http://localhost:3000/api/count_words`, {
+      const response = await fetch(`${API_BASE_URL}/api/count_words`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: targetCode })
