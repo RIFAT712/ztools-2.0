@@ -1,8 +1,9 @@
 import os
 import json
 from fastapi import FastAPI, Request, HTTPException, Response
-from fastapi.responses import StreamingResponse, RedirectResponse
+from fastapi.responses import StreamingResponse, RedirectResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
 import fountain
@@ -118,6 +119,16 @@ async def jury_editathons(request: Request):
         return {"editathons": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Serve static files for the React frontend
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+@app.exception_handler(404)
+async def not_found(request: Request, exc: HTTPException):
+    # SPA fallback: return index.html for all non-API 404s
+    if not request.url.path.startswith("/api"):
+        return FileResponse("static/index.html")
+    return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
 if __name__ == "__main__":
     import uvicorn
