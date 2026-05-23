@@ -273,8 +273,7 @@ const AppContent: React.FC = () => {
 
   const copyWikitable = () => {
     if (!wordCountData) return;
-    let wt = '{{উইকিপিডিয়া:অমর একুশে নিবন্ধ প্রতিযোগিতা ২০২৬/পরিভ্রমণ|সক্রিয়=7}}\n';
-    wt += '{| class="wikitable sortable"\n! # !! ব্যবহারকারী !! গৃহীত শব্দসংখ্যা !! অবস্থান\n';
+    let wt = '{| class="wikitable sortable"\n! # !! ব্যবহারকারী !! গৃহীত শব্দসংখ্যা !! অবস্থান\n';
     
     sortedWordCountData.forEach((d, i) => {
       const rank = i + 1;
