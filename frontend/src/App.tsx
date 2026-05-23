@@ -466,11 +466,11 @@ const AppContent: React.FC = () => {
         {juryStats && activeTab === 'jury' && (
           <div className="card">
             <div className="card-header">
-              <div className="small">পর্যালোচনা পরিসংখ্যান</div>
-              <div className="card-actions">
-                <button className="icon-btn" onClick={copyJuryWikitable} title="উইকি টেবিল কপি করুন"><Copy size={16} /></button>
-              </div>
               <div className="sub-tabs-container" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div className="sub-tabs">
+                  <button className={`sub-tab ${jurySubTab === 'stats' ? 'active' : ''}`} onClick={() => setJurySubTab('stats')}>পরিসংখ্যান</button>
+                  <button className={`sub-tab ${jurySubTab === 'conflicts' ? 'active' : ''}`} onClick={() => setJurySubTab('conflicts')}>একাধিক পর্যালোচক ({toBengaliDigits(juryStats.raw?.conflicts?.length || 0)})</button>
+                </div>
                 {jurySubTab === 'conflicts' && (
                   <div className="search-box-mini">
                     <input 
@@ -482,10 +482,9 @@ const AppContent: React.FC = () => {
                     />
                   </div>
                 )}
-                <div className="sub-tabs">
-                  <button className={`sub-tab ${jurySubTab === 'stats' ? 'active' : ''}`} onClick={() => setJurySubTab('stats')}>পরিসংখ্যান</button>
-                  <button className={`sub-tab ${jurySubTab === 'conflicts' ? 'active' : ''}`} onClick={() => setJurySubTab('conflicts')}>একাধিক পর্যালোচক ({toBengaliDigits(juryStats.raw?.conflicts?.length || 0)})</button>
-                </div>
+              </div>
+              <div className="card-actions">
+                <button className="icon-btn" onClick={copyJuryWikitable} title="উইকি টেবিল কপি করুন"><Copy size={16} /></button>
               </div>
             </div>
             <div className="table-wrap">

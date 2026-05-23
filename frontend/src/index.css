@@ -426,7 +426,7 @@ th {
 }
 
 td {
-  padding: 16px 12px;
+  padding: 16px 8px; /* Reduced from 12px */
   text-align: center;
   border-bottom: 1px solid var(--glass);
   overflow: hidden;
@@ -435,12 +435,12 @@ td {
 }
 
 /* Specific column widths to lock layout for main table */
-.wordcount-table th:nth-child(1), .wordcount-table td:nth-child(1) { width: 80px; }
+.wordcount-table th:nth-child(1), .wordcount-table td:nth-child(1) { width: 60px; } /* Rank - reduced from 80 */
 .wordcount-table th:nth-child(2), .wordcount-table td:nth-child(2) { width: auto; text-align: left; }
-.wordcount-table th:nth-child(3), .wordcount-table td:nth-child(3) { width: 100px; }
-.wordcount-table th:nth-child(4), .wordcount-table td:nth-child(4) { width: 120px; }
-.wordcount-table th:nth-child(5), .wordcount-table td:nth-child(5) { width: 100px; }
-.wordcount-table th:nth-child(6), .wordcount-table td:nth-child(6) { width: 120px; }
+.wordcount-table th:nth-child(3), .wordcount-table td:nth-child(3) { width: 120px; } /* Accepted - increased from 100 */
+.wordcount-table th:nth-child(4), .wordcount-table td:nth-child(4) { width: 130px; } /* Unreviewed - increased from 120 */
+.wordcount-table th:nth-child(5), .wordcount-table td:nth-child(5) { width: 110px; } /* Rejected - increased from 100 */
+.wordcount-table th:nth-child(6), .wordcount-table td:nth-child(6) { width: 140px; } /* Total - increased from 120 */
 
 .user-row {
   cursor: pointer;
