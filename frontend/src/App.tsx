@@ -7,7 +7,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { toBengaliDigits } from './utils';
 import { Download, Copy, Award, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3000' : 'https://ztools.toolforge.org';
+const API_BASE_URL = 'https://ztools.toolforge.org';
 axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true;
 
