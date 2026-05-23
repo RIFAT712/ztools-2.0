@@ -263,15 +263,100 @@ const AppContent: React.FC = () => {
     return null;
   };
 
+  const getBengaliOrdinal = (n: number) => {
+    const ordinals: Record<number, string> = {
+      1: '১ম', 2: '২য়', 3: '৩য়', 4: '৪র্থ', 5: '৫ম',
+      6: '৬ষ্ঠ', 7: '৭ম', 8: '৮ম', 9: '৯ম', 10: '১০ম'
+    };
+    return ordinals[n] || '';
+  };
+
   const copyWikitable = () => {
     if (!wordCountData) return;
-    let wt = '{| class="wikitable sortable"\n! ক্রমিক !! ব্যবহারকারী !! গৃহীত !! অপর্যালোচিত !! বাতিল !! মোট শব্দ\n';
+    let wt = '{{উইকিপিডিয়া:অমর একুশে নিবন্ধ প্রতিযোগিতা ২০২৬/পরিভ্রমণ|সক্রিয়=7}}\n';
+    wt += '{| class="wikitable sortable"\n! # !! ব্যবহারকারী !! গৃহীত শব্দসংখ্যা !! অবস্থান\n';
+    
     sortedWordCountData.forEach((d, i) => {
-      wt += `|-\n| ${i + 1} || ${d.user} || ${d.accepted} || ${d.unreviewed} || ${d.rejected} || ${d.total}\n`;
+      const rank = i + 1;
+      const ordinal = getBengaliOrdinal(rank);
+      const rowStyle = rank <= 10 ? ' style="background:#f9f9f9;"' : '';
+      
+      if (rank === 11) {
+        wt += '|- class="sortbottom" style="background:#eeeeee; height:2px;"\n| colspan="4" |\n';
+      }
+      
+      wt += `|-${rowStyle}\n| ${toBengaliDigits(rank)} || [[উইকিপিডিয়া:অমর_একুশে_নিবন্ধ_প্রতিযোগিতা_২০২৬/ফলাফল#${d.user}|${d.user}]] || ${toBengaliDigits(d.accepted)} || ${ordinal}\n`;
     });
     wt += '|}';
     navigator.clipboard.writeText(wt);
-    alert('উইকি টেবিল ক্লিপবোর্ডে কপি করা হয়েছে!');
+    alert('মূল উইকি টেবিল ক্লিপবোর্ডে কপি করা হয়েছে!');
+  };
+
+  const copyDetailedStats = () => {
+    if (!wordCountData) return;
+    let wt = '';
+    
+    // Sort by accepted words desc
+    const sorted = Object.entries(wordCountData)
+      .map(([user, data]) => ({ user, ...data }))
+      .sort((a, b) => b.accepted - a.accepted);
+
+    sorted.forEach(d => {
+      // Only include if they have at least one accepted article
+      const acceptedArticles = d.articles.filter(a => a.status === 'গৃহীত হয়েছে');
+      if (acceptedArticles.length === 0) return;
+
+      wt += `=== [[User:${d.user}|${d.user}]] ===\n`;
+      wt += '{| class="wikitable sortable"\n! নিবন্ধের নাম !! শব্দসংখ্যা\n';
+      
+      acceptedArticles.forEach(art => {
+        wt += `|-\n| [[${art.title}]] || ${toBengaliDigits(art.words)}\n`;
+      });
+      
+      wt += `|-\n| '''মোট শব্দ''' || '''${toBengaliDigits(d.accepted)}'''\n`;
+      wt += '|}\n\n';
+    });
+
+    navigator.clipboard.writeText(wt);
+    alert('বিস্তারিত পরিসংখ্যান ক্লিপবোর্ডে কপি করা হয়েছে!');
+  };
+
+  const downloadDetailedStats = () => {
+    if (!wordCountData) return;
+    let wt = '';
+    const sorted = Object.entries(wordCountData)
+      .map(([user, data]) => ({ user, ...data }))
+      .sort((a, b) => b.accepted - a.accepted);
+
+    sorted.forEach(d => {
+      const acceptedArticles = d.articles.filter(a => a.status === 'গৃহীত হয়েছে');
+      if (acceptedArticles.length === 0) return;
+      wt += `=== [[User:${d.user}|${d.user}]] ===\n`;
+      wt += '{| class="wikitable sortable"\n! নিবন্ধের নাম !! শব্দসংখ্যা\n';
+      acceptedArticles.forEach(art => {
+        wt += `|-\n| [[${art.title}]] || ${toBengaliDigits(art.words)}\n`;
+      });
+      wt += `|-\n| '''মোট শব্দ''' || '''${toBengaliDigits(d.accepted)}'''\n`;
+      wt += '|}\n\n';
+    });
+
+    const blob = new Blob([wt], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `detailed_stats_${selectedCode}.txt`;
+    a.click();
+  };
+
+  const copyJuryWikitable = () => {
+    if (!juryStats || !juryStats.raw.stats) return;
+    let wt = '{| class="wikitable sortable"\n! ক্রমিক !! পর্যালোচক !! মোট !! গৃহীত !! বাতিল\n';
+    sortedJuryStats.forEach((s: any, i: number) => {
+      wt += `|-\n| ${toBengaliDigits(i + 1)} || ${s.user} || ${toBengaliDigits(s.total)} || ${toBengaliDigits(s.accepted)} || ${toBengaliDigits(s.rejected)}\n`;
+    });
+    wt += '|}';
+    navigator.clipboard.writeText(wt);
+    alert('পর্যালোচনা পরিসংখ্যান কপি করা হয়েছে!');
   };
 
   const downloadCSV = () => {
@@ -307,7 +392,9 @@ const AppContent: React.FC = () => {
             <div className="card-header">
               <div className="small">ফলাফল</div>
               <div className="card-actions">
-                <button className="icon-btn" onClick={copyWikitable} title="উইকি টেবিল কপি করুন"><Copy size={16} /></button>
+                <button className="btn btn-sm secondary" onClick={copyDetailedStats} title="বিস্তারিত পরিসংখ্যান কপি করুন"><Copy size={14} /> বিস্তারিত কপি</button>
+                <button className="btn btn-sm secondary" onClick={downloadDetailedStats} title="বিস্তারিত ডাউনলোড করুন"><Download size={14} /> বিস্তারিত ডাউনলোড</button>
+                <button className="icon-btn" onClick={copyWikitable} title="মূল উইকি টেবিল কপি করুন"><Copy size={16} /></button>
                 <button className="icon-btn" onClick={downloadCSV} title="CSV ডাউনলোড করুন"><Download size={16} /></button>
               </div>
             </div>
@@ -381,6 +468,9 @@ const AppContent: React.FC = () => {
           <div className="card">
             <div className="card-header">
               <div className="small">পর্যালোচনা পরিসংখ্যান</div>
+              <div className="card-actions">
+                <button className="icon-btn" onClick={copyJuryWikitable} title="উইকি টেবিল কপি করুন"><Copy size={16} /></button>
+              </div>
               <div className="sub-tabs-container" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                 {jurySubTab === 'conflicts' && (
                   <div className="search-box-mini">

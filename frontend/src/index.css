@@ -264,6 +264,16 @@ body {
 .card-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.btn-sm {
+  padding: 8px 16px !important;
+  font-size: 0.85rem !important;
+  border-radius: 10px !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .icon-btn {
