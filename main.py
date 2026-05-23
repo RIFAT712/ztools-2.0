@@ -10,7 +10,12 @@ import fountain
 from auth_fastapi import auth_router
 import requests
 
-load_dotenv()
+# For Toolforge: explicitly look for .env in the home directory if not found locally
+env_path = os.path.join(os.path.expanduser("~"), ".env")
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+else:
+    load_dotenv()
 
 app = FastAPI()
 
@@ -132,4 +137,5 @@ async def not_found(request: Request, exc: HTTPException):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    # Toolforge Build Service expects port 8000
+    uvicorn.run(app, host="0.0.0.0", port=8000)
