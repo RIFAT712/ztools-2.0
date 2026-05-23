@@ -3,6 +3,8 @@ uvicorn
 python-multipart
 starlette
 authlib
+itsdangerous
+a2wsgi
 httpx
 beautifulsoup4
 aiohttp
