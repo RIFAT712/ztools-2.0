@@ -1,12 +1,9 @@
 import React from 'react';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -30,8 +27,6 @@ interface DailyProgressProps {
 }
 
 const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
-  const [downloadFormat, setDownloadFormat] = React.useState<'png' | 'svg'>('svg');
-
   if (!data || data.length === 0) {
     return <div className="no-data">কোনো তথ্য পাওয়া যায়নি।</div>;
   }
@@ -101,7 +96,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                       weekday: 'long'
                     });
                   }}
-                  formatter={(value: number) => [toBengaliDigits(value), 'মোট শব্দ']}
+                  formatter={(value: any) => [toBengaliDigits(value), 'মোট শব্দ']}
                   contentStyle={{ 
                     backgroundColor: 'var(--card)', 
                     border: '1px solid var(--border)',
@@ -165,7 +160,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                       weekday: 'long'
                     });
                   }}
-                  formatter={(value: number) => [toBengaliDigits(value), 'মোট নিবন্ধ']}
+                  formatter={(value: any) => [toBengaliDigits(value), 'মোট নিবন্ধ']}
                   contentStyle={{ 
                     backgroundColor: 'var(--card)', 
                     border: '1px solid var(--border)',
@@ -223,7 +218,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                       weekday: 'long'
                     });
                   }}
-                  formatter={(value: number) => [toBengaliDigits(value), 'নতুন নিবন্ধ']}
+                  formatter={(value: any) => [toBengaliDigits(value), 'নতুন নিবন্ধ']}
                   contentStyle={{ 
                     backgroundColor: 'var(--card)', 
                     border: '1px solid var(--border)',
@@ -273,7 +268,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                       weekday: 'long'
                     });
                   }}
-                  formatter={(value: number) => [toBengaliDigits(value), 'শব্দসংখ্যা']}
+                  formatter={(value: any) => [toBengaliDigits(value), 'শব্দসংখ্যা']}
                   contentStyle={{ 
                     backgroundColor: 'var(--card)', 
                     border: '1px solid var(--border)',

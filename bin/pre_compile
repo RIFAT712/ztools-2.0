@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Exit on error
+set -e
+
+echo "---> [Pre-Compile] Starting Frontend Build"
+
+# Ensure we are in the root
+cd "$(dirname "$0")/.."
+
+if [ -d "frontend" ]; then
+    echo "---> [Pre-Compile] Found frontend directory, building..."
+    cd frontend
+    
+    # Run the build using the Node.js version Toolforge just installed
+    npm install --no-audit --no-fund
+    npm run build
+    
+    cd ..
+    echo "---> [Pre-Compile] Frontend Build Complete"
+else
+    echo "---X [Pre-Compile] Error: frontend directory not found"
+    exit 1
+fi
