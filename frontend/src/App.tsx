@@ -4,10 +4,13 @@ import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
 import { Header } from './components/Header';
 import { EditathonSelector } from './components/EditathonSelector';
 import { ProgressBar } from './components/ProgressBar';
+import DailyProgress from './components/DailyProgress';
 import { toBengaliDigits } from './utils';
 import { Download, Copy, Award, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = 'https://ztools.toolforge.org';
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : 'https://ztools.toolforge.org';
 axios.defaults.baseURL = API_BASE_URL;
 axios.defaults.withCredentials = true;
 
@@ -44,7 +47,6 @@ type SortConfig = {
 const AppContent: React.FC = () => {
   const { code, tab } = useParams();
   const navigate = useNavigate();
-  const [username, setUsername] = useState<string>();
   const [editathons, setEditathons] = useState<Editathon[]>([]);
   const [selectedCode, setSelectedCode] = useState('');
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,8 @@ const AppContent: React.FC = () => {
   const [juryStats, setJuryStats] = useState<any>();
   const [jurySubTab, setJurySubTab] = useState<'stats' | 'conflicts'>('stats');
   const [rejectedArticles, setRejectedArticles] = useState<any>();
-  const [activeTab, setActiveTab] = useState<'wordcount' | 'jury' | 'rejected'>('wordcount');
+  const [dailyStats, setDailyStats] = useState<any[]>();
+  const [activeTab, setActiveTab] = useState<'wordcount' | 'jury' | 'rejected' | 'daily'>('wordcount');
   const [siteUrl, setSiteUrl] = useState('');
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [conflictSearch, setConflictSearch] = useState('');
@@ -64,11 +67,7 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const [meRes, edRes] = await Promise.all([
-          axios.get('/api/me'),
-          axios.get('/api/editathons')
-        ]);
-        setUsername(meRes.data.username);
+        const edRes = await axios.get('/api/editathons');
         setEditathons(edRes.data.editathons);
       } catch (err) {
         console.error('Init error', err);
@@ -106,8 +105,42 @@ const AppContent: React.FC = () => {
           if (!line.trim()) continue;
           const chunk = JSON.parse(line);
           if (chunk.type === 'info') setSiteUrl(chunk.site_url);
-          else if (chunk.type === 'update') setProgress(prev => Math.min(prev + 1, 95));
-          else if (chunk.type === 'complete') {
+          else if (chunk.type === 'cache') {
+            setWordCountData(chunk.data[0]); setSiteUrl(chunk.data[1]);
+          } else if (chunk.type === 'update') {
+            setProgress(prev => Math.min(prev + 1, 95));
+            setWordCountData(prev => {
+              if (!prev) return prev;
+              const next = { ...prev };
+              chunk.articles.forEach((art: any) => {
+                const user = art.user;
+                if (!next[user]) {
+                  next[user] = { accepted: 0, unreviewed: 0, rejected: 0, total: 0, conflicts: 0, articles: [] };
+                }
+                const userObj = { ...next[user], articles: [...next[user].articles] };
+                const existingIdx = userObj.articles.findIndex((a: any) => a.title === art.title);
+
+                if (existingIdx > -1) {
+                  const old = userObj.articles[existingIdx];
+                  userObj.total -= old.words;
+                  if (old.status === 'গৃহীত হয়েছে') userObj.accepted -= old.words;
+                  else if (old.status === 'গৃহীত হয়নি') userObj.rejected -= old.words;
+                  else userObj.unreviewed -= old.words;
+                  userObj.articles[existingIdx] = art;
+                } else {
+                  userObj.articles.push(art);
+                }
+
+                userObj.total += art.words;
+                if (art.status === 'গৃহীত হয়েছে') userObj.accepted += art.words;
+                else if (art.status === 'গৃহীত হয়নি') userObj.rejected += art.words;
+                else userObj.unreviewed += art.words;
+
+                next[user] = userObj;
+              });
+              return next;
+            });
+          } else if (chunk.type === 'complete') {
             setWordCountData(chunk.data[0]); setSiteUrl(chunk.data[1]);
             setProgress(100); setTimeout(() => setProgressVisible(false), 500);
           } else if (chunk.type === 'error') { setError(chunk.message); setProgressVisible(false); }
@@ -136,6 +169,16 @@ const AppContent: React.FC = () => {
     } catch (err: any) { setError(err.message); }
   }, []);
 
+  const handleDailyStats = useCallback(async (targetCode: string) => {
+    if (!targetCode) return;
+    setError(''); setWordCountData(undefined); setJuryStats(undefined); setRejectedArticles(undefined);
+    setDailyStats(undefined);
+    try {
+      const res = await axios.post('/api/daily_stats', { code: targetCode });
+      setDailyStats(res.data);
+    } catch (err: any) { setError(err.message); }
+  }, []);
+
   useEffect(() => {
     if (code) {
       setSelectedCode(code);
@@ -150,8 +193,9 @@ const AppContent: React.FC = () => {
       if (tab === 'wordcount') handleWordCount(code);
       else if (tab === 'jury') handleJuryStats(code);
       else if (tab === 'rejected') handleRejectedArticles(code);
+      else if (tab === 'daily') handleDailyStats(code);
     }
-  }, [code, tab, navigate, handleWordCount, handleJuryStats, handleRejectedArticles]);
+  }, [code, tab, navigate, handleWordCount, handleJuryStats, handleRejectedArticles, handleDailyStats]);
 
   const onSelectEditathon = (newCode: string) => {
     setSelectedCode(newCode);
@@ -375,12 +419,13 @@ const AppContent: React.FC = () => {
   return (
     <div className="app-wrapper">
       <div className="container">
-        <Header username={username} />
+        <Header />
         <EditathonSelector editathons={editathons} loading={loading} onSelect={onSelectEditathon} selected={selectedCode} />
         <div className="controls">
           <div className="buttons main-actions">
             <button className={`btn ${activeTab === 'wordcount' ? 'primary' : 'secondary'}`} onClick={() => onTabChange('wordcount')}>শব্দসংখ্যা পরিসংখ্যান</button>
             <button className={`btn ${activeTab === 'jury' ? 'primary' : 'secondary'}`} onClick={() => onTabChange('jury')}>পর্যালোচনা পরিসংখ্যান</button>
+            <button className={`btn ${activeTab === 'daily' ? 'primary' : 'secondary'}`} onClick={() => onTabChange('daily')}>প্রতিদিনের অগ্রগতি</button>
             <button className={`btn ${activeTab === 'rejected' ? 'primary' : 'secondary'}`} onClick={() => onTabChange('rejected')}>বাতিলকৃত নিবন্ধ</button>
           </div>
         </div>
@@ -546,6 +591,9 @@ const AppContent: React.FC = () => {
               </table>
             </div>
           </div>
+        )}
+        {dailyStats && activeTab === 'daily' && (
+          <DailyProgress data={dailyStats} code={selectedCode} />
         )}
       </div>
       <footer className="footer"><div className="footer-content"><div className="footer-section"><p className="copyright">© ২০২৬ | উইকি এডিটাথন টুলস</p><p className="small-text">উইকিপিডিয়া এডিটাথন পরিচালনার একটি উন্মুক্ত টুল।</p></div><div className="footer-links"><a href="https://github.com/shafayet/ztools" target="_blank" rel="noreferrer" className="footer-link">GitHub</a></div></div></footer>

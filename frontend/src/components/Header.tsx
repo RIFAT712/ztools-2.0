@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-export const Header: React.FC<{ username?: string }> = ({ username }) => {
+export const Header: React.FC = () => {
   const [isLight, setIsLight] = useState(() => localStorage.getItem('theme') === 'light');
 
   useEffect(() => {
@@ -28,15 +28,6 @@ export const Header: React.FC<{ username?: string }> = ({ username }) => {
           <button id="themeToggle" title="থিম পরিবর্তন করুন" onClick={toggleTheme}>
             {isLight ? '🌙' : '☀️'}
           </button>
-          {username ? (
-            <>
-              <span className="user-info"><strong>{username}</strong></span>
-              <a href="/api/comment" className="btn-link">পর্যালোচনা</a>
-              <a href="/api/logout" className="btn-link" style={{ color: '#ff4d4d', borderColor: '#ff4d4d' }}>লগ-আউট</a>
-            </>
-          ) : (
-            <a href="/api/login" className="btn-link">লগ-ইন</a>
-          )}
         </div>
       </div>
     </div>

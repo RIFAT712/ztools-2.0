@@ -2,11 +2,10 @@ fastapi
 uvicorn
 python-multipart
 starlette
-authlib
-itsdangerous
+# Authlib removed
+# itsdangerous removed
 a2wsgi
 httpx
-beautifulsoup4
 aiohttp
 sseclient-py
 python-dotenv

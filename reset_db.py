@@ -1,4 +1,5 @@
 
+import fountain
 import sqlite3
 import os
 import sys
@@ -6,11 +7,10 @@ import sys
 # Add current directory to path so we can import fountain
 sys.path.append(os.getcwd())
 
-import fountain
 
 def wipe_and_init():
     print(f"Target Database: {fountain.DB_FILE}")
-    
+
     if os.path.exists(fountain.DB_FILE):
         try:
             # First try to close any connections (not strictly possible across processes but good to try)
@@ -34,8 +34,9 @@ def wipe_and_init():
                 return
 
     # Re-initialize
-    fountain.init_db()
+    fountain.db.init_db(fountain.tracked_hashes)
     print("Database re-initialized fresh with the title_hash schema.")
+
 
 if __name__ == "__main__":
     wipe_and_init()
