@@ -23,7 +23,8 @@ logs/
 .idea/
 frontend/node_modules/
 frontend/dist/
-static/assets/
-static/index.html
-static/favicon.svg
-static/icons.svg
+# Frontend build artifacts (Tracking these for reliable Toolforge deployment)
+# static/assets/
+# static/index.html
+# static/favicon.svg
+# static/icons.svg
