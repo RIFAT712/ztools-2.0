@@ -10,3 +10,4 @@ aiohttp
 sseclient-py
 python-dotenv
 requests
+matplotlib

@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import StreamingResponse, RedirectResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -99,6 +100,8 @@ async def daily_stats(request: Request):
 @app.get("/api/daily_graph/{code}")
 async def daily_graph(code: str, metric: str = None, format: str = "png"):
     try:
+        import matplotlib
+        matplotlib.use('Agg') # Critical for headless environments like Toolforge
         import matplotlib.pyplot as plt
         import matplotlib.font_manager as fm
         import io
