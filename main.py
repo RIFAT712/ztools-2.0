@@ -47,29 +47,50 @@ def init_fonts():
     global BN_PROP, BN_PROP_BOLD
     try:
         from core.logger import smart_log
-        font_candidates = ['Kalpurush', 'Nirmala UI', 'Nikosh', 'Siyam Rupali', 'Lohit Bengali', 'FreeSans', 'Arial Unicode MS', 'DejaVu Sans', 'Liberation Sans']
-        available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
+        import glob
         
-        # Log available fonts for debugging on Toolforge
-        smart_log(f"[Fonts] Found {len(available_fonts)} fonts in system. Top 5: {list(available_fonts.keys())[:5]}")
+        # 1. Search for local fonts first (Guaranteed success if files are uploaded)
+        local_fonts_dir = os.path.join(BASE_DIR, "assets", "fonts")
+        local_font_files = glob.glob(os.path.join(local_fonts_dir, "*.ttf"))
         
-        chosen_font = next((f for f in font_candidates if f in available_fonts), None)
-        font_path = available_fonts.get(chosen_font) if chosen_font else None
+        font_path = None
+        chosen_font = None
         
+        if local_font_files:
+            # Prefer Kalpurush or Nikosh if present locally, else take the first .ttf
+            preferred_local = ['Kalpurush', 'Nikosh', 'SiyamRupali', 'Lohit']
+            for pref in preferred_local:
+                match = next((f for f in local_font_files if pref.lower() in os.path.basename(f).lower()), None)
+                if match:
+                    font_path = match
+                    chosen_font = os.path.basename(match)
+                    break
+            if not font_path:
+                font_path = local_font_files[0]
+                chosen_font = os.path.basename(font_path)
+            smart_log(f"[Fonts] Found local font: {chosen_font} at {font_path}")
+        
+        # 2. Fallback to system fonts if no local font found
+        if not font_path:
+            font_candidates = ['Kalpurush', 'Nirmala UI', 'Nikosh', 'Siyam Rupali', 'Lohit Bengali', 'FreeSans', 'Arial Unicode MS', 'DejaVu Sans', 'Liberation Sans']
+            available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
+            chosen_font = next((f for f in font_candidates if f in available_fonts), None)
+            font_path = available_fonts.get(chosen_font) if chosen_font else None
+            if font_path:
+                smart_log(f"[Fonts] Chosen system font: {chosen_font} at {font_path}")
+
         if font_path:
-            smart_log(f"[Fonts] Chosen font: {chosen_font} at {font_path}")
             try: fm.fontManager.addfont(font_path)
             except: pass
             BN_PROP = fm.FontProperties(fname=font_path)
             BN_PROP_BOLD = fm.FontProperties(fname=font_path, weight='bold')
         else:
-            smart_log("[Fonts] No preferred Bengali fonts found. Using generic sans-serif fallbacks.", "WARNING")
-            # Use basic sans instead of sans-serif for better parser compatibility
+            smart_log("[Fonts] No suitable fonts found. Rendering will likely fail for Bengali.", "WARNING")
             BN_PROP = fm.FontProperties(family='sans')
             BN_PROP_BOLD = fm.FontProperties(family='sans', weight='bold')
     except Exception as e:
         from core.logger import smart_log
-        smart_log(f"[Fonts] Initialization error: {str(e)}. Using absolute system fallbacks.", "ERROR")
+        smart_log(f"[Fonts] Initialization error: {str(e)}", "ERROR")
         BN_PROP = fm.FontProperties()
         BN_PROP_BOLD = fm.FontProperties(weight='bold')
 
