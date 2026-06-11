@@ -46,22 +46,30 @@ BN_PROP_BOLD = None
 def init_fonts():
     global BN_PROP, BN_PROP_BOLD
     try:
-        font_candidates = ['Kalpurush', 'Nirmala UI', 'Nikosh', 'Siyam Rupali', 'Lohit Bengali', 'FreeSans', 'Arial Unicode MS']
+        from core.logger import smart_log
+        font_candidates = ['Kalpurush', 'Nirmala UI', 'Nikosh', 'Siyam Rupali', 'Lohit Bengali', 'FreeSans', 'Arial Unicode MS', 'DejaVu Sans', 'Liberation Sans']
         available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
-        chosen_font = next((f for f in font_candidates if f in available_fonts), 'sans-serif')
-        font_path = available_fonts.get(chosen_font)
+        
+        # Log available fonts for debugging on Toolforge
+        smart_log(f"[Fonts] Found {len(available_fonts)} fonts in system. Top 5: {list(available_fonts.keys())[:5]}")
+        
+        chosen_font = next((f for f in font_candidates if f in available_fonts), None)
+        font_path = available_fonts.get(chosen_font) if chosen_font else None
         
         if font_path:
+            smart_log(f"[Fonts] Chosen font: {chosen_font} at {font_path}")
             try: fm.fontManager.addfont(font_path)
             except: pass
             BN_PROP = fm.FontProperties(fname=font_path)
             BN_PROP_BOLD = fm.FontProperties(fname=font_path, weight='bold')
         else:
-            # Use 'sans' instead of 'sans-serif' to avoid parser issues in some matplotlib versions
+            smart_log("[Fonts] No preferred Bengali fonts found. Using generic sans-serif fallbacks.", "WARNING")
+            # Use basic sans instead of sans-serif for better parser compatibility
             BN_PROP = fm.FontProperties(family='sans')
             BN_PROP_BOLD = fm.FontProperties(family='sans', weight='bold')
     except Exception as e:
-        # Absolute fallback
+        from core.logger import smart_log
+        smart_log(f"[Fonts] Initialization error: {str(e)}. Using absolute system fallbacks.", "ERROR")
         BN_PROP = fm.FontProperties()
         BN_PROP_BOLD = fm.FontProperties(weight='bold')
 
