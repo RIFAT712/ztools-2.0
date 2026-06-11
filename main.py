@@ -57,18 +57,30 @@ def init_fonts():
         chosen_font = None
         
         if local_font_files:
-            # Prefer Kalpurush or Nikosh if present locally, else take the first .ttf
-            preferred_local = ['Kalpurush', 'Nikosh', 'SiyamRupali', 'Lohit']
+            # Prefer specific fonts if present locally
+            preferred_local = ['Kalpurush', 'Nikosh', 'NotoSansBengali', 'SiyamRupali', 'Lohit']
+            
+            # Find regular font
             for pref in preferred_local:
-                match = next((f for f in local_font_files if pref.lower() in os.path.basename(f).lower()), None)
+                match = next((f for f in local_font_files if pref.lower() in os.path.basename(f).lower() and 'bold' not in os.path.basename(f).lower()), None)
                 if match:
                     font_path = match
                     chosen_font = os.path.basename(match)
                     break
+            
             if not font_path:
                 font_path = local_font_files[0]
                 chosen_font = os.path.basename(font_path)
+            
             smart_log(f"[Fonts] Found local font: {chosen_font} at {font_path}")
+            
+            # Find bold version if exists
+            bold_match = next((f for f in local_font_files if chosen_font.split('-')[0].lower() in os.path.basename(f).lower() and 'bold' in os.path.basename(f).lower()), None)
+            if bold_match:
+                bold_font_path = bold_match
+                smart_log(f"[Fonts] Found local bold font: {os.path.basename(bold_match)}")
+            else:
+                bold_font_path = font_path
         
         # 2. Fallback to system fonts if no local font found
         if not font_path:
@@ -76,14 +88,19 @@ def init_fonts():
             available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
             chosen_font = next((f for f in font_candidates if f in available_fonts), None)
             font_path = available_fonts.get(chosen_font) if chosen_font else None
+            bold_font_path = font_path
             if font_path:
                 smart_log(f"[Fonts] Chosen system font: {chosen_font} at {font_path}")
 
         if font_path:
             try: fm.fontManager.addfont(font_path)
             except: pass
+            if bold_font_path and bold_font_path != font_path:
+                try: fm.fontManager.addfont(bold_font_path)
+                except: pass
+                
             BN_PROP = fm.FontProperties(fname=font_path)
-            BN_PROP_BOLD = fm.FontProperties(fname=font_path, weight='bold')
+            BN_PROP_BOLD = fm.FontProperties(fname=bold_font_path, weight='bold') if bold_font_path else fm.FontProperties(fname=font_path, weight='bold')
         else:
             smart_log("[Fonts] No suitable fonts found. Rendering will likely fail for Bengali.", "WARNING")
             BN_PROP = fm.FontProperties(family='sans')
