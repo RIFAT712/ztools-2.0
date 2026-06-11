@@ -596,7 +596,7 @@ const AppContent: React.FC = () => {
           <DailyProgress data={dailyStats} code={selectedCode} />
         )}
       </div>
-      <footer className="footer"><div className="footer-content"><div className="footer-section"><p className="copyright">© ২০২৬ | উইকি এডিটাথন টুলস</p><p className="small-text">উইকিপিডিয়া এডিটাথন পরিচালনার একটি উন্মুক্ত টুল।</p></div><div className="footer-links"><a href="https://github.com/shafayet/ztools" target="_blank" rel="noreferrer" className="footer-link">GitHub</a></div></div></footer>
+      <footer className="footer"><div className="footer-content"><div className="footer-section"><p className="copyright">© ২০২৬ | উইকি এডিটাথন টুলস</p><p className="small-text">উইকিপিডিয়া এডিটাথন পরিচালনার একটি উন্মুক্ত টুল।</p></div><div className="footer-links"><a href="https://github.com/RIFAT712/ztools-2.0" target="_blank" rel="noreferrer" className="footer-link">GitHub</a></div></div></footer>
     </div>
   );
 };
