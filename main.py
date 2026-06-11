@@ -57,11 +57,13 @@ def init_fonts():
             BN_PROP = fm.FontProperties(fname=font_path)
             BN_PROP_BOLD = fm.FontProperties(fname=font_path, weight='bold')
         else:
-            BN_PROP = fm.FontProperties(family='sans-serif')
-            BN_PROP_BOLD = fm.FontProperties(family='sans-serif', weight='bold')
+            # Use 'sans' instead of 'sans-serif' to avoid parser issues in some matplotlib versions
+            BN_PROP = fm.FontProperties(family='sans')
+            BN_PROP_BOLD = fm.FontProperties(family='sans', weight='bold')
     except Exception as e:
-        BN_PROP = fm.FontProperties(family='sans-serif')
-        BN_PROP_BOLD = fm.FontProperties(family='sans-serif', weight='bold')
+        # Absolute fallback
+        BN_PROP = fm.FontProperties()
+        BN_PROP_BOLD = fm.FontProperties(weight='bold')
 
 # Initialize Fonts
 init_fonts()
