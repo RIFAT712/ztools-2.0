@@ -246,6 +246,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
                 try:
                     d = datetime.strptime(d_str, "%Y-%m-%d")
                     months = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"]
+
                     return f"{to_bn(d.day)} {months[d.month-1]} {to_bn(d.year)}"
                 except: return to_bn(d_str)
 
@@ -340,6 +341,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
             try:
                 d = datetime.strptime(d_str, "%Y-%m-%d")
                 months = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"]
+
                 return f"{to_bn(d.day)} {months[d.month-1]} {to_bn(d.year)}"
             except: return to_bn(d_str)
 

@@ -44,7 +44,8 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
   };
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return toBengaliDigits(d.getDate()) + ' ' + d.toLocaleDateString('bn-BD', { month: 'short' }) + ' ' + toBengaliDigits(d.getFullYear());
+    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+    return toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
   };
 
   const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -88,12 +89,9 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 <Tooltip 
                   labelFormatter={(label) => {
                     const d = new Date(label);
-                    return d.toLocaleDateString('bn-BD', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      weekday: 'long'
-                    });
+                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
                   }}
                   formatter={(value: any) => [toBengaliDigits(value), 'মোট শব্দ']}
                   contentStyle={{ 
@@ -152,12 +150,9 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 <Tooltip 
                   labelFormatter={(label) => {
                     const d = new Date(label);
-                    return d.toLocaleDateString('bn-BD', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      weekday: 'long'
-                    });
+                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
                   }}
                   formatter={(value: any) => [toBengaliDigits(value), 'মোট নিবন্ধ']}
                   contentStyle={{ 
@@ -210,12 +205,9 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 <Tooltip 
                   labelFormatter={(label) => {
                     const d = new Date(label);
-                    return d.toLocaleDateString('bn-BD', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      weekday: 'long'
-                    });
+                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
                   }}
                   formatter={(value: any) => [toBengaliDigits(value), 'নতুন নিবন্ধ']}
                   contentStyle={{ 
@@ -260,12 +252,9 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 <Tooltip 
                   labelFormatter={(label) => {
                     const d = new Date(label);
-                    return d.toLocaleDateString('bn-BD', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      weekday: 'long'
-                    });
+                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
                   }}
                   formatter={(value: any) => [toBengaliDigits(value), 'শব্দসংখ্যা']}
                   contentStyle={{ 

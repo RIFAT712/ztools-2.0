@@ -1,10 +1,12 @@
-export const toBengaliDigits = (num: number | string): string => {
+export const toBengaliDigits = (num: number | string, useGrouping = true): string => {
   if (num === undefined || num === null) return '';
   const n = typeof num === 'string' ? parseFloat(num) : num;
   if (isNaN(n)) return num.toString();
   
-  // Format with South Asian grouping (2,2,3) using en-IN
-  const formatted = n.toLocaleString('en-IN');
+  // Format with grouping if requested
+  const formatted = useGrouping 
+    ? n.toLocaleString('en-IN') 
+    : n.toString();
   
   // Convert digits to Bengali
   const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
