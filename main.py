@@ -29,13 +29,42 @@ else:
 # Matplotlib configuration for headless environments
 import matplotlib
 matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+from matplotlib.figure import Figure
+from matplotlib.ticker import FuncFormatter
+
 # Set a writable config directory for matplotlib on Toolforge
 os.environ['MPLCONFIGDIR'] = os.path.join(BASE_DIR, ".matplotlib_cache")
 if not os.path.exists(os.environ['MPLCONFIGDIR']):
     os.makedirs(os.environ['MPLCONFIGDIR'], exist_ok=True)
 
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+# Global font cache for performance
+BN_PROP = None
+BN_PROP_BOLD = None
+
+def init_fonts():
+    global BN_PROP, BN_PROP_BOLD
+    try:
+        font_candidates = ['Kalpurush', 'Nirmala UI', 'Nikosh', 'Siyam Rupali', 'Lohit Bengali', 'FreeSans', 'Arial Unicode MS']
+        available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
+        chosen_font = next((f for f in font_candidates if f in available_fonts), 'sans-serif')
+        font_path = available_fonts.get(chosen_font)
+        
+        if font_path:
+            try: fm.fontManager.addfont(font_path)
+            except: pass
+            BN_PROP = fm.FontProperties(fname=font_path)
+            BN_PROP_BOLD = fm.FontProperties(fname=font_path, weight='bold')
+        else:
+            BN_PROP = fm.FontProperties(family='sans-serif')
+            BN_PROP_BOLD = fm.FontProperties(family='sans-serif', weight='bold')
+    except Exception as e:
+        BN_PROP = fm.FontProperties(family='sans-serif')
+        BN_PROP_BOLD = fm.FontProperties(family='sans-serif', weight='bold')
+
+# Initialize Fonts
+init_fonts()
 
 # Initialize DB and cache
 db.init_db(tracked_hashes)
@@ -48,15 +77,15 @@ start_background_services()
 # Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://ztools.toolforge.org"
-    ], # Vite default + Production
+    allow_origins=["*"], # More permissive for Toolforge proxy environment
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "time": datetime.now().isoformat()}
 
 @app.get("/api/editathons")
 async def get_editathons():
