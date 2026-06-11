@@ -39,16 +39,20 @@ def format_bn_commas(n):
 def format_bn_num(n):
     try:
         n = float(n)
+        def fmt(val):
+            # Strip .0 by converting to int if it's a whole number
+            return int(val) if val == int(val) else val
+
         if n >= 10000000:
-            val = round(n / 10000000, 1)
-            return to_bn(int(val) if val == int(val) else val) + " কোটি"
+            val = fmt(round(n / 10000000, 1))
+            return to_bn(val) + " কোটি"
         if n >= 100000:
-            val = round(n / 100000, 1)
-            return to_bn(int(val) if val == int(val) else val) + " লক্ষ"
+            val = fmt(round(n / 100000, 1))
+            return to_bn(val) + " লক্ষ"
         if n >= 1000:
-            val = round(n / 1000, 1)
-            return to_bn(int(val) if val == int(val) else val) + " হাজার"
-        return to_bn(int(n) if n == int(n) else n)
+            val = fmt(round(n / 1000, 1))
+            return to_bn(val) + " হাজার"
+        return to_bn(fmt(n))
     except:
         return to_bn(n)
 

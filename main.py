@@ -401,19 +401,27 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
         # 3. Add Tooltip Attributes
         for el in svg_tree.iter():
             gid = el.get('id')
-            if gid and gid.startswith('marker_'):
+            if gid and 'marker_' in gid:
                 parts = gid.split('_')
                 if len(parts) >= 3:
-                    m_key = "_".join(parts[1:-1])
-                    idx = int(parts[-1])
-                    if m_key in metrics_cfg and idx < len(stats):
-                        m_info = metrics_cfg[m_key]
-                        date_str = bn_date_local(stats[idx]["date"])
-                        val_str = format_bn_num(stats[idx][m_key])
-                        exact_val_str = format_bn_commas(stats[idx][m_key])
-                        safe_title = m_info['label'].replace("'", "\\'")
-                        el.set('onmousemove', f"showTooltip(evt, '{safe_title}', '{date_str}', '{val_str}', '{exact_val_str}', '{m_info['color']}')")
-                        el.set('onmouseout', "hideTooltip()")
+                    # Find the metric key which might be multi-part
+                    m_key = None
+                    for k in metrics_cfg.keys():
+                        if f"_{k}_" in gid or gid.startswith(f"marker_{k}_"):
+                            m_key = k
+                            break
+                    
+                    idx_str = parts[-1]
+                    if idx_str.isdigit():
+                        idx = int(idx_str)
+                        if m_key in metrics_cfg and idx < len(stats):
+                            m_info = metrics_cfg[m_key]
+                            date_str = bn_date_local(stats[idx]["date"])
+                            val_str = format_bn_num(stats[idx][m_key])
+                            exact_val_str = format_bn_commas(stats[idx][m_key])
+                            safe_title = m_info['label'].replace("'", "\\'")
+                            el.set('onmousemove', f"showTooltip(evt, '{safe_title}', '{date_str}', '{val_str}', '{exact_val_str}', '{m_info['color']}')")
+                            el.set('onmouseout', "hideTooltip()")
         
         # 4. Create Infobox
         infobox = ET.SubElement(svg_tree, f'{{{svg_ns}}}g', id='svg-infobox', visibility='hidden', style='pointer-events: none;')
@@ -423,6 +431,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
         ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-val', x='12', y='66', fill='#1e293b', style='font-weight: bold; font-size: 14px;')
         ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-exact', x='12', y='88', fill='#64748b', style='font-size: 12px;')
         
+        final_svg = ET.tostring(svg_tree, encoding='utf-8', method='xml')
         filename = f"{metric if metric else 'progress'}_{code}.svg"
         return Response(content=final_svg, media_type="image/svg+xml", headers={"Content-Disposition": f"attachment; filename={filename}"})
     except Exception as e:

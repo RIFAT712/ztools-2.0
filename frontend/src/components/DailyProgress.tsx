@@ -34,7 +34,8 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
   const formatYAxis = (value: number) => {
     const format = (v: number, unit: string) => {
       const rounded = Math.round(v * 10) / 10;
-      return toBengaliDigits(rounded.toString()) + ' ' + unit;
+      const str = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+      return toBengaliDigits(str) + ' ' + unit;
     };
 
     if (value >= 10000000) return format(value / 10000000, 'কোটি');
