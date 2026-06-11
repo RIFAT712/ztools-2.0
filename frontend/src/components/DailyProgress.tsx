@@ -32,20 +32,19 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
   }
 
   const formatYAxis = (value: number) => {
-    if (value >= 10000000) {
-      return toBengaliDigits((value / 10000000).toFixed(1)) + ' কোটি';
-    }
-    if (value >= 100000) {
-      return toBengaliDigits((value / 100000).toFixed(1)) + ' লক্ষ';
-    }
-    if (value >= 1000) {
-      return toBengaliDigits((value / 1000).toFixed(1)) + ' হাজার';
-    }
+    const format = (v: number, unit: string) => {
+      const rounded = Math.round(v * 10) / 10;
+      return toBengaliDigits(rounded.toString()) + ' ' + unit;
+    };
+
+    if (value >= 10000000) return format(value / 10000000, 'কোটি');
+    if (value >= 100000) return format(value / 100000, 'লক্ষ');
+    if (value >= 1000) return format(value / 1000, 'হাজার');
     return toBengaliDigits(value);
   };
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    return toBengaliDigits(d.getDate()) + ' ' + d.toLocaleDateString('bn-BD', { month: 'short' });
+    return toBengaliDigits(d.getDate()) + ' ' + d.toLocaleDateString('bn-BD', { month: 'short' }) + ' ' + toBengaliDigits(d.getFullYear());
   };
 
   const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'

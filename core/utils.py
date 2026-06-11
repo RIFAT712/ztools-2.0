@@ -40,11 +40,14 @@ def format_bn_num(n):
     try:
         n = float(n)
         if n >= 10000000:
-            return to_bn(round(n / 10000000, 1)) + " কোটি"
+            val = round(n / 10000000, 1)
+            return to_bn(int(val) if val == int(val) else val) + " কোটি"
         if n >= 100000:
-            return to_bn(round(n / 100000, 1)) + " লক্ষ"
+            val = round(n / 100000, 1)
+            return to_bn(int(val) if val == int(val) else val) + " লক্ষ"
         if n >= 1000:
-            return to_bn(round(n / 1000, 1)) + " হাজার"
+            val = round(n / 1000, 1)
+            return to_bn(int(val) if val == int(val) else val) + " হাজার"
         return to_bn(int(n) if n == int(n) else n)
     except:
         return to_bn(n)

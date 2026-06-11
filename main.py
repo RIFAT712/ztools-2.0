@@ -29,6 +29,7 @@ else:
 # Matplotlib configuration for headless environments
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams['svg.fonttype'] = 'none'  # Use text instead of paths
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 from matplotlib.figure import Figure
@@ -245,7 +246,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
                 try:
                     d = datetime.strptime(d_str, "%Y-%m-%d")
                     months = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"]
-                    return f"{to_bn(d.day)} {months[d.month-1]}"
+                    return f"{to_bn(d.day)} {months[d.month-1]} {to_bn(d.year)}"
                 except: return to_bn(d_str)
 
             dates = [s["date"] for s in stats]
@@ -339,7 +340,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
             try:
                 d = datetime.strptime(d_str, "%Y-%m-%d")
                 months = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"]
-                return f"{to_bn(d.day)} {months[d.month-1]}"
+                return f"{to_bn(d.day)} {months[d.month-1]} {to_bn(d.year)}"
             except: return to_bn(d_str)
 
         svg_ns = "http://www.w3.org/2000/svg"
@@ -348,9 +349,10 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
         
         svg_tree = ET.fromstring(svg_data)
         
-        # 1. Add CSS for hover effects
+        # 1. Add CSS for hover effects and global font
         style = ET.Element(f'{{{svg_ns}}}style')
         style.text = """
+            text { font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif !important; }
             [id^='marker_'] { transition: all 0.2s; cursor: pointer; pointer-events: all; }
             [id^='marker_']:hover { filter: brightness(0.8); stroke: #000; stroke-width: 2px; }
             circle[id^='marker_']:hover { r: 9px; }
@@ -414,10 +416,10 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
         # 4. Create Infobox
         infobox = ET.SubElement(svg_tree, f'{{{svg_ns}}}g', id='svg-infobox', visibility='hidden', style='pointer-events: none;')
         ET.SubElement(infobox, f'{{{svg_ns}}}rect', id='infobox-bg', width='210', height='105', fill='white', stroke='#2563eb', stroke_width='2', rx='8', ry='8', style='opacity: 0.95;')
-        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-title', x='12', y='22', style='font-family: sans-serif; font-weight: bold; font-size: 14px;')
-        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-date', x='12', y='44', fill='#475569', style='font-family: sans-serif; font-size: 12px;')
-        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-val', x='12', y='66', fill='#1e293b', style='font-family: sans-serif; font-weight: bold; font-size: 14px;')
-        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-exact', x='12', y='88', fill='#64748b', style='font-family: sans-serif; font-size: 12px;')
+        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-title', x='12', y='22', style='font-weight: bold; font-size: 14px;')
+        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-date', x='12', y='44', fill='#475569', style='font-size: 12px;')
+        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-val', x='12', y='66', fill='#1e293b', style='font-weight: bold; font-size: 14px;')
+        ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-exact', x='12', y='88', fill='#64748b', style='font-size: 12px;')
         
         final_svg = ET.tostring(svg_tree, encoding='utf-8', method='xml')
         return Response(content=final_svg, media_type="image/svg+xml", headers={"Content-Disposition": f"attachment; filename=progress_{code}.svg"})
