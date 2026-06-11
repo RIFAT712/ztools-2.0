@@ -423,11 +423,12 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
         ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-val', x='12', y='66', fill='#1e293b', style='font-weight: bold; font-size: 14px;')
         ET.SubElement(infobox, f'{{{svg_ns}}}text', id='infobox-exact', x='12', y='88', fill='#64748b', style='font-size: 12px;')
         
-        final_svg = ET.tostring(svg_tree, encoding='utf-8', method='xml')
-        return Response(content=final_svg, media_type="image/svg+xml", headers={"Content-Disposition": f"attachment; filename=progress_{code}.svg"})
+        filename = f"{metric if metric else 'progress'}_{code}.svg"
+        return Response(content=final_svg, media_type="image/svg+xml", headers={"Content-Disposition": f"attachment; filename={filename}"})
     except Exception as e:
         smart_log(f"SVG Post-processing Error: {e}", "ERROR")
-        return Response(content=svg_data, media_type="image/svg+xml", headers={"Content-Disposition": f"attachment; filename=progress_{code}.svg"})
+        filename = f"{metric if metric else 'progress'}_{code}.svg"
+        return Response(content=svg_data, media_type="image/svg+xml", headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 @app.post("/api/count_words")
 async def count_words(request: Request):
