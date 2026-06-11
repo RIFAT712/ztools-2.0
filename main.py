@@ -171,12 +171,14 @@ async def daily_stats(request: Request):
 @app.get("/api/daily_graph/{code}")
 async def daily_graph(code: str, metric: str = None, format: str = "png"):
     from core.logger import smart_log
+    smart_log(f"[API] Graph request for {code} (metric: {metric})")
     
     def generate_graph_sync(code, metric):
         try:
             import io
+            import traceback
             from matplotlib.figure import Figure
-            from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+            from matplotlib.ticker import FuncFormatter
             from core.processor import get_daily_stats_core, get_all_cached_for_editathon
             from core.api import fetch_fountain_data
             from core.utils import to_bn, format_bn_num, format_bn_commas
@@ -187,9 +189,11 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
             stats = get_daily_stats_core(data, cached)
             
             if not stats:
-                return None, "No data available for this editathon"
+                smart_log(f"[Graph] No stats found for {code}", "WARNING")
+                return None, "No data available for this editathon", None, None, None
                 
             e_name = data.get("name", code)
+            smart_log(f"[Graph] Generating for {e_name} with {len(stats)} days of data")
                 
             def bn_date(d_str):
                 try:
@@ -212,7 +216,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
             bn_prop = BN_PROP
             bn_prop_bold = BN_PROP_BOLD
 
-            # Create Figure (Object-Oriented API for thread safety)
+            # Create Figure
             fig = Figure(figsize=(11, 6.5))
             ax = fig.add_subplot(111)
             
@@ -263,11 +267,13 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
             
             svg_buf = io.BytesIO()
             fig.savefig(svg_buf, format='svg', bbox_inches='tight')
+            smart_log("[Graph] SVG generated successfully")
             return svg_buf.getvalue(), None, stats, metrics_cfg, e_name
         except Exception as e:
             import traceback
-            smart_log(f"Graph Generation Error: {str(e)}\n{traceback.format_exc()}", "ERROR")
-            return None, str(e), None, None, None
+            err_msg = f"Graph Generation Error: {str(e)}\n{traceback.format_exc()}"
+            smart_log(err_msg, "ERROR")
+            return None, err_msg, None, None, None
 
     # Run in executor
     loop = asyncio.get_event_loop()
@@ -275,6 +281,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
     
     if error:
         if "No data" in error: raise HTTPException(status_code=404, detail=error)
+        smart_log(f"[API] Returning 500 for graph: {error[:200]}...", "ERROR")
         raise HTTPException(status_code=500, detail=f"Graph generation failed: {error}")
 
     # POST-PROCESS SVG FOR INTERACTIVITY
@@ -311,6 +318,7 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
         script.text = """
             function showTooltip(evt, title, date, val, exactVal, color) {
                 var tooltip = document.getElementById('svg-infobox');
+                if (!tooltip) return;
                 var t_title = document.getElementById('infobox-title');
                 var t_date = document.getElementById('infobox-date');
                 var t_val = document.getElementById('infobox-val');
@@ -333,7 +341,10 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
                 if (y > svg.viewBox.baseVal.height - 110) y = cursorpt.y - 115;
                 tooltip.setAttribute('transform', 'translate(' + x + ',' + y + ')');
             }
-            function hideTooltip() { document.getElementById('svg-infobox').setAttribute('visibility', 'hidden'); }
+            function hideTooltip() { 
+                var tooltip = document.getElementById('svg-infobox');
+                if (tooltip) tooltip.setAttribute('visibility', 'hidden'); 
+            }
         """
         svg_tree.append(script)
         
