@@ -287,6 +287,10 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
         }
         .chart-container {
           padding: 15px;
+          outline: none;
+        }
+        .chart-container *:focus {
+          outline: none;
         }
         .chart-body {
           margin-top: 15px;
