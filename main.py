@@ -208,18 +208,9 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
                 "daily_words": {"data": [s["daily_words"] for s in stats], "label": "প্রতিদিনের শব্দসংখ্যা", "title_suffix": "প্রতিদিনের শব্দসংখ্যা লেখচিত্র", "color": "#8b5cf6", "type": "bar"}
             }
 
-            # Font discovery
-            font_candidates = ['Kalpurush', 'Nirmala UI', 'Nikosh', 'Siyam Rupali', 'Lohit Bengali', 'FreeSans', 'Arial Unicode MS']
-            available_fonts = {f.name: f.fname for f in fm.fontManager.ttflist}
-            chosen_font = next((f for f in font_candidates if f in available_fonts), 'sans-serif')
-            font_path = available_fonts.get(chosen_font)
-            
-            if font_path:
-                try: fm.fontManager.addfont(font_path)
-                except: pass
-            
-            bn_prop = fm.FontProperties(fname=font_path) if font_path else fm.FontProperties(family='sans-serif')
-            bn_prop_bold = fm.FontProperties(fname=font_path, weight='bold') if font_path else fm.FontProperties(family='sans-serif', weight='bold')
+            # Use global font properties
+            bn_prop = BN_PROP
+            bn_prop_bold = BN_PROP_BOLD
 
             # Create Figure (Object-Oriented API for thread safety)
             fig = Figure(figsize=(11, 6.5))
@@ -258,11 +249,11 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
                 for i in range(len(bn_dates)):
                     ax2.plot(bn_dates[i], words[i], color=color_words, marker='s', markersize=6, gid=f"marker_total_words_{i}")
                 ax2.tick_params(axis='y', labelcolor=color_words)
-                ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_bn_num(x)))
+                ax2.yaxis.set_major_formatter(FuncFormatter(lambda x, p: format_bn_num(x)))
                 for label in ax2.get_yticklabels(): label.set_fontproperties(bn_prop)
                 ax.set_title(f'{e_name}: অগ্রগতি লেখচিত্র', fontproperties=bn_prop_bold, fontsize=17, pad=20)
 
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: format_bn_num(x)))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: format_bn_num(x)))
             for label in ax.get_xticklabels(): label.set_fontproperties(bn_prop)
             for label in ax.get_yticklabels(): label.set_fontproperties(bn_prop)
             ax.set_xlabel('তারিখ', fontproperties=bn_prop, fontsize=12)
