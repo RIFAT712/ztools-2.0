@@ -37,24 +37,43 @@ class DatabaseManager:
                 conn.close()
                 self._local.conn = None
 
+    def _migrate_table(self, cursor, table_name, required_columns):
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        existing_columns = [info[1] for info in cursor.fetchall()]
+        for col_name, col_def in required_columns.items():
+            if col_name not in existing_columns:
+                smart_log(f"[DB] Migration: Adding '{col_name}' column to {table_name}")
+                cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}")
+
     def init_db(self, tracked_hashes_set):
         with self as conn:
             cursor = conn.cursor()
+            
+            # 1. wordcount_cache
             cursor.execute('''CREATE TABLE IF NOT EXISTS wordcount_cache (
                 editathon_code TEXT, title_hash TEXT, article_title TEXT, 
-                words INTEGER, actual_title TEXT, is_redirect BOOLEAN, last_updated TEXT, wiki TEXT,
+                words INTEGER, actual_title TEXT, is_redirect BOOLEAN, last_updated TEXT,
                 PRIMARY KEY (editathon_code, title_hash))''')
+            self._migrate_table(cursor, "wordcount_cache", {"wiki": "TEXT"})
+            
+            # 2. Indices
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_editathon_code ON wordcount_cache (editathon_code)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_title_hash ON wordcount_cache (title_hash)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_wiki_hash ON wordcount_cache (wiki, title_hash)')
             
+            # 3. Other tables
+            cursor.execute('''CREATE TABLE IF NOT EXISTS monitor_status (key TEXT PRIMARY KEY, last_run TEXT)''')
+            cursor.execute('''CREATE TABLE IF NOT EXISTS fountain_cache (code TEXT PRIMARY KEY, data TEXT, last_updated TEXT)''')
+            
+            # 4. Load memory cache
             cursor.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache")
             rows = cursor.fetchall()
             for row in rows:
                 if row[0] and row[1]:
                     tracked_hashes_set.add(f"{row[0]}:{row[1]}")
-            smart_log(f"[DB] Initialized with {len(tracked_hashes_set)} wiki-specific tracked hashes")
-            cursor.execute('''CREATE TABLE IF NOT EXISTS monitor_status (key TEXT PRIMARY KEY, last_run TEXT)''')
-            cursor.execute('''CREATE TABLE IF NOT EXISTS fountain_cache (code TEXT PRIMARY KEY, data TEXT, last_updated TEXT)''')
+                elif row[1]: # Legacy without wiki
+                    tracked_hashes_set.add(row[1])
+                    
+            smart_log(f"[DB] Initialized with {len(tracked_hashes_set)} tracked hashes")
 
 db = DatabaseManager(DB_FILE)

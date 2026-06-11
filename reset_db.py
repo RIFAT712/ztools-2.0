@@ -8,7 +8,12 @@ import sys
 sys.path.append(os.getcwd())
 
 
-def wipe_and_init():
+def wipe_and_init(force=False):
+    if not force:
+        print("WARNING: This will PERMANENTLY DELETE all data in the database.")
+        print("To proceed, run: python reset_db.py --force")
+        return
+
     print(f"Target Database: {fountain.DB_FILE}")
 
     if os.path.exists(fountain.DB_FILE):
@@ -39,4 +44,5 @@ def wipe_and_init():
 
 
 if __name__ == "__main__":
-    wipe_and_init()
+    force = "--force" in sys.argv
+    wipe_and_init(force)

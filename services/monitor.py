@@ -7,7 +7,7 @@ from datetime import datetime
 from sseclient import SSEClient as EventSource
 from concurrent.futures import ThreadPoolExecutor
 from core.config import USER_AGENT, tracked_hashes
-from core.logger import smart_log, log_raw
+from core.logger import smart_log
 from core.db import db
 from core.utils import normalize_title, get_title_hash
 from core.api import get_bn_editathons, close_session
@@ -86,41 +86,30 @@ def realtime_stream_monitor():
                             change_type = change.get('type', 'edit')
                             ns = change.get('namespace')
                             title = change.get('title')
-                            user = change.get('user')
                             
-                            log_raw.info(f"[{wiki_dbname}] {change_type.upper()} (ns:{ns}): {title} by {user}")
-                            
+                            # NS 0 is Mainspace (Articles)
                             if ns == 0 and change_type in ['edit', 'new']:
                                 normalized_title = normalize_title(title)
                                 t_hash = get_title_hash(normalized_title)
                                 track_key = f"{wiki_dbname}:{t_hash}"
                                 
                                 if track_key not in tracked_hashes:
-                                    # Fallback check for missing hashes in set
-                                    with db as conn:
-                                        exists_in_db = conn.execute('SELECT 1 FROM wordcount_cache WHERE wiki = ? AND title_hash = ? LIMIT 1', (wiki_dbname, t_hash)).fetchone()
-                                    if exists_in_db:
-                                        smart_log(f"[Stream] Hash mismatch! Found in DB but not in tracked_hashes: {track_key} ({normalized_title})", component="live")
-                                        tracked_hashes.add(track_key)
-                                    else:
-                                        continue
+                                    continue
                                 
-                                smart_log(f"[Stream] Match found for: {normalized_title} (Mainspace) on {wiki_dbname}", component="live")
+                                smart_log(f"[Stream] Match found: {normalized_title} ({wiki_dbname})", component="live")
                                 
                                 with db as conn:
                                     exists = conn.execute('SELECT DISTINCT editathon_code FROM wordcount_cache WHERE wiki = ? AND title_hash = ?', (wiki_dbname, t_hash)).fetchall()
+                                
                                 if exists:
                                     for code in [row[0] for row in exists]:
-                                        smart_log(f"[Stream] Submitting task for {normalized_title} ({wiki_dbname}) in {code}", component="live")
                                         def run_sync_safe(c, t, w):
                                             try:
                                                 asyncio.run(run_realtime_task(c, f"Realtime({w})", t))
                                             except Exception as task_err:
-                                                smart_log(f"[Stream] Task execution error for {t} on {w}: {str(task_err)}", "ERROR", component="live")
+                                                smart_log(f"[Stream] Task error for {t}: {str(task_err)}", "ERROR", component="live")
                                         
                                         realtime_worker_pool.submit(run_sync_safe, code, normalized_title, wiki_dbname)
-                                else:
-                                    smart_log(f"[Stream] Article tracked but no editathons found for: {track_key}", "ERROR", component="live")
                     except Exception as e:
                         smart_log(f"[Stream] Event error: {str(e)}", "ERROR", component="live")
         except Exception as conn_err:

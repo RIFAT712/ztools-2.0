@@ -39,7 +39,6 @@ def setup_logger(name, log_file, level=logging.INFO):
 log_error = setup_logger('error_logger', 'error.log', level=logging.ERROR)
 log_sync = setup_logger('sync_logger', 'sync.log')
 log_live = setup_logger('live_logger', 'live.log')
-log_raw = setup_logger('raw_logger', 'raw_stream.log')
 
 def smart_log(msg, level="INFO", component=None):
     if level == "ERROR":
