@@ -306,10 +306,13 @@ async def daily_graph(code: str, metric: str = None, format: str = "png"):
                 ax.set_title(f'{e_name}: অগ্রগতি লেখচিত্র', fontproperties=bn_prop_bold, fontsize=17, pad=20)
 
             ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: format_bn_num(x)))
-            for label in ax.get_xticklabels(): label.set_fontproperties(bn_prop)
-            for label in ax.get_yticklabels(): label.set_fontproperties(bn_prop)
+            for label in ax.get_xticklabels():
+                label.set_fontproperties(bn_prop)
+                label.set_horizontalalignment('right')
+            for label in ax.get_yticklabels():
+                label.set_fontproperties(bn_prop)
             ax.set_xlabel('তারিখ', fontproperties=bn_prop, fontsize=12)
-            ax.tick_params(axis='x', rotation=45)
+            ax.tick_params(axis='x', rotation=30)
             ax.grid(axis='y', linestyle='--', alpha=0.4)
             fig.tight_layout()
             
