@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate, Routes, Route, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { EditathonSelector } from './components/EditathonSelector';
 import { ProgressBar } from './components/ProgressBar';
@@ -47,6 +47,8 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 } | null;
 
+const RESERVED_WORDS = ['admin', 'api', 'static', 'assets', 'dashboard'];
+
 const AppContent: React.FC = () => {
   const { code, tab } = useParams();
   const navigate = useNavigate();
@@ -68,7 +70,11 @@ const AppContent: React.FC = () => {
   const [sortConfig, setSortConfig] = useState<SortConfig>(null);
   const [conflictSearch, setConflictSearch] = useState('');
 
+  // Explicit reserved word guard
+  const isReserved = (code && RESERVED_WORDS.includes(code)) || location.pathname.startsWith('/admin');
+
   useEffect(() => {
+    if (isReserved) return;
     const init = async () => {
       try {
         const edRes = await axios.get('/api/editathons');
@@ -185,8 +191,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     // Extremely aggressive guard to prevent any redirection for admin paths
-    const isLoginPage = location.pathname.startsWith('/admin');
-    if (isLoginPage || code === 'admin') {
+    if (isReserved) {
       return;
     }
 
@@ -205,7 +210,17 @@ const AppContent: React.FC = () => {
       else if (tab === 'rejected') handleRejectedArticles(code);
       else if (tab === 'daily') handleDailyStats(code);
     }
-  }, [code, tab, navigate, location.pathname, handleWordCount, handleJuryStats, handleRejectedArticles, handleDailyStats]);
+  }, [code, tab, navigate, isReserved, handleWordCount, handleJuryStats, handleRejectedArticles, handleDailyStats]);
+
+  // Redirect if code is 'admin' to the actual admin route
+  if (code === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Explicit render guard for other reserved paths
+  if (isReserved) {
+    return null;
+  }
 
   const onSelectEditathon = (newCode: string) => {
     if (!newCode || newCode === 'admin') return;
