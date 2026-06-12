@@ -274,20 +274,21 @@ export const AdminPanel: React.FC = () => {
                       <td>{ed.name}</td>
                       <td><code>{ed.code}</code></td>
                       <td style={{ textAlign: 'right' }}>
-                        <button 
-                          className={`btn btn-sm ${ed.isEnabled ? 'success' : 'secondary outline'}`}
-                          style={{ minWidth: '120px' }}
-                          onClick={() => toggleTracking(ed.code, ed.isEnabled)}
-                          disabled={actionLoading === ed.code}
-                        >
-                          {actionLoading === ed.code ? (
-                            <Loader2 className="spin" size={14} />
-                          ) : ed.isEnabled ? (
-                            <><ToggleRight size={16} /> চালু আছে</>
-                          ) : (
-                            <><ToggleLeft size={16} /> বন্ধ আছে</>
-                          )}
-                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
+                          <span className={`status-badge ${ed.isEnabled ? 'success' : 'danger'}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                            {ed.isEnabled ? 'ট্র্যাকিং চলছে' : 'ট্র্যাকিং বন্ধ'}
+                          </span>
+                          <button 
+                            className={`switch-toggle ${ed.isEnabled ? 'on' : 'off'}`}
+                            onClick={() => toggleTracking(ed.code, ed.isEnabled)}
+                            disabled={actionLoading === ed.code}
+                            title={ed.isEnabled ? 'ট্র্যাকিং বন্ধ করুন' : 'ট্র্যাকিং চালু করুন'}
+                          >
+                            <div className="switch-handle">
+                              {actionLoading === ed.code && <Loader2 className="spin" size={12} />}
+                            </div>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -299,6 +300,46 @@ export const AdminPanel: React.FC = () => {
       )}
 
       <style>{`
+        /* ... previous styles ... */
+        .switch-toggle {
+          width: 60px;
+          height: 30px;
+          border-radius: 15px;
+          border: none;
+          position: relative;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .switch-toggle.on {
+          background-color: #22c55e; /* Green */
+        }
+        .switch-toggle.off {
+          background-color: #ef4444; /* Red */
+        }
+        .switch-toggle:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .switch-handle {
+          width: 24px;
+          height: 24px;
+          background-color: white;
+          border-radius: 50%;
+          position: absolute;
+          left: 3px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .switch-toggle.on .switch-handle {
+          left: 33px;
+        }
         .admin-panel {
           max-width: 900px;
           margin: 0 auto;
