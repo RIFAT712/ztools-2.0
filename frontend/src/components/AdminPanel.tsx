@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Shield, UserMinus, UserCheck, Search, LogOut, AlertCircle, Loader2, ListTodo, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Shield, UserMinus, UserCheck, Search, LogOut, AlertCircle, Loader2, ListTodo } from 'lucide-react';
 
 interface Participant {
   username: string;
