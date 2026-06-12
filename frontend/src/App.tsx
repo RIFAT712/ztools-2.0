@@ -183,8 +183,9 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (window.location.pathname.startsWith('/admin')) return;
+
     if (code) {
-      if (code === 'admin') return;
       setSelectedCode(code);
       if (!tab) {
         navigate(`/${code}/wordcount`, { replace: true });
@@ -208,7 +209,7 @@ const AppContent: React.FC = () => {
 
   const onTabChange = (newTab: string) => {
     setActiveTab(newTab as any);
-    if (selectedCode) {
+    if (selectedCode && selectedCode !== 'admin') {
       navigate(`/${selectedCode}/${newTab}`);
     }
   };
@@ -691,9 +692,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<AppContent />} />
       <Route path="/admin" element={<AdminLogin />} />
       <Route path="/admin/dashboard" element={<AdminPanel />} />
+      <Route path="/" element={<AppContent />} />
       <Route path="/:code" element={<AppContent />} />
       <Route path="/:code/:tab" element={<AppContent />} />
     </Routes>
