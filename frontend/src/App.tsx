@@ -184,6 +184,7 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (code) {
+      if (code === 'admin') return;
       setSelectedCode(code);
       if (!tab) {
         navigate(`/${code}/wordcount`, { replace: true });
