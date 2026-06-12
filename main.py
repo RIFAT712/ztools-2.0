@@ -124,24 +124,33 @@ async def health():
 
 # Admin APIs
 @app.post("/api/admin/login")
-async def admin_login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+async def admin_login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         with db as conn:
             row = conn.execute("SELECT password_hash FROM admins WHERE username = ?", (form_data.username,)).fetchone()
             if not row or not verify_password(form_data.password, row[0]):
                 raise HTTPException(status_code=401, detail="Invalid username or password")
             token = create_access_token({"sub": form_data.username})
+            
+            # Determine if we should set secure cookie based on protocol
+            is_secure = request.headers.get("x-forwarded-proto", "http") == "https" or request.url.scheme == "https"
+            
             response.set_cookie(
                 key="admin_token",
                 value=token,
                 httponly=True,
                 max_age=60 * 60 * 24 * 7,
                 samesite="lax",
-                secure=False
+                secure=is_secure
             )
             return {"access_token": token, "token_type": "bearer"}
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/admin")
+@app.get("/admin/dashboard")
+async def serve_admin():
+    return FileResponse("static/index.html")
 
 @app.get("/api/admin/check-auth")
 async def check_auth(user: str = Depends(get_current_user)):
