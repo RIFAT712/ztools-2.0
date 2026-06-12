@@ -76,7 +76,15 @@ class DatabaseManager:
                 PRIMARY KEY (editathon_code, username)
             )''')
             
-            # 5. Load memory cache
+            # 5. Enabled Editathons (Selective tracking)
+            cursor.execute('''CREATE TABLE IF NOT EXISTS enabled_editathons (
+                code TEXT PRIMARY KEY,
+                name TEXT,
+                wiki TEXT,
+                site_url TEXT
+            )''')
+            
+            # 6. Load memory cache
             cursor.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache")
             rows = cursor.fetchall()
             for row in rows:

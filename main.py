@@ -197,11 +197,53 @@ async def unban_user(request: Request, user: str = Depends(get_current_user)):
         return {"status": "success", "message": f"User {target_user} unbanned from {code}"}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/admin/editathons/all")
+async def admin_get_all_editathons(user: str = Depends(get_current_user)):
+    try:
+        all_ed = await asyncio.get_event_loop().run_in_executor(None, get_bn_editathons)
+        enabled = []
+        with db as conn:
+            rows = conn.execute("SELECT code FROM enabled_editathons").fetchall()
+            enabled = [r[0] for r in rows]
+        
+        for e in all_ed:
+            e["isEnabled"] = e["code"] in enabled
+        
+        return {"editathons": all_ed}
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/admin/editathons/toggle")
+async def admin_toggle_editathon(request: Request, user: str = Depends(get_current_user)):
+    data = await request.json()
+    code = data.get("code")
+    is_enabled = data.get("isEnabled")
+    if not code: raise HTTPException(status_code=400, detail="Missing code")
+    
+    try:
+        if is_enabled:
+            # Get data for this editathon to store in DB
+            all_ed = await asyncio.get_event_loop().run_in_executor(None, get_bn_editathons)
+            target = next((e for e in all_ed if e["code"] == code), None)
+            if not target: raise HTTPException(status_code=404, detail="Editathon not found")
+            
+            with db as conn:
+                conn.execute("INSERT OR REPLACE INTO enabled_editathons (code, name, wiki, site_url) VALUES (?, ?, ?, ?)",
+                             (target["code"], target["name"], target["wiki"], target["site_url"]))
+        else:
+            with db as conn:
+                conn.execute("DELETE FROM enabled_editathons WHERE code = ?", (code,))
+        
+        return {"status": "success"}
+    except HTTPException: raise
+    except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/editathons")
 async def get_editathons():
     try:
-        result = await asyncio.get_event_loop().run_in_executor(None, get_bn_editathons)
-        return {"editathons": result}
+        with db as conn:
+            rows = conn.execute("SELECT code, name, wiki, site_url FROM enabled_editathons").fetchall()
+            enabled_list = [{"code": r[0], "name": r[1], "wiki": r[2], "site_url": r[3]} for r in rows]
+        return {"editathons": enabled_list}
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/fetch_articles")

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Shield, UserMinus, UserCheck, Search, LogOut, AlertCircle, Loader2 } from 'lucide-react';
+import { Shield, UserMinus, UserCheck, Search, LogOut, AlertCircle, Loader2, ListTodo, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface Participant {
   username: string;
@@ -21,6 +21,9 @@ export const AdminPanel: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'participants' | 'management'>('management');
+  const [allEditathons, setAllEditathons] = useState<any[]>([]);
+  const [mgmtLoading, setMgmtLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,6 +38,39 @@ export const AdminPanel: React.FC = () => {
     };
     checkAuth();
   }, [navigate]);
+
+  useEffect(() => {
+    if (activeTab === 'management') {
+      loadAllEditathons();
+    }
+  }, [activeTab]);
+
+  const loadAllEditathons = async () => {
+    setMgmtLoading(true);
+    try {
+      const res = await axios.get('/api/admin/editathons/all');
+      setAllEditathons(res.data.editathons);
+    } catch {
+      setError('এডিটাথন তালিকা লোড করতে সমস্যা হয়েছে।');
+    } finally {
+      setMgmtLoading(false);
+    }
+  };
+
+  const toggleTracking = async (code: string, currentStatus: boolean) => {
+    setActionLoading(code);
+    try {
+      await axios.post('/api/admin/editathons/toggle', { code, isEnabled: !currentStatus });
+      setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: !currentStatus } : e));
+      // Refresh active list
+      const edRes = await axios.get('/api/editathons');
+      setEditathons(edRes.data.editathons);
+    } catch {
+      alert('অ্যাকশনটি সফল হয়নি।');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const fetchParticipants = async (code: string) => {
     if (!code) return;
@@ -95,94 +131,166 @@ export const AdminPanel: React.FC = () => {
         </button>
       </div>
 
-      <div className="admin-controls card">
-        <div className="selector-group">
-          <label>এডিটাথন নির্বাচন করুন</label>
-          <select 
-            value={selectedCode} 
-            onChange={(e) => handleSelectEditathon(e.target.value)}
-            className="admin-select"
-          >
-            <option value="">নির্বাচন করুন...</option>
-            {editathons.map(ed => (
-              <option key={ed.code} value={ed.code}>{ed.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {selectedCode && (
-          <div className="search-group">
-            <label>অংশগ্রহণকারী খুঁজুন</label>
-            <div className="search-input-wrapper">
-              <Search size={18} />
-              <input 
-                type="text" 
-                placeholder="ইউজারনেম..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
+      <div className="admin-tabs card" style={{ padding: '4px', marginBottom: '24px', display: 'flex', gap: '4px' }}>
+        <button 
+          className={`btn ${activeTab === 'management' ? 'primary' : 'ghost'}`} 
+          style={{ flex: 1 }}
+          onClick={() => setActiveTab('management')}
+        >
+          <ListTodo size={16} /> এডিটাথন ম্যানেজমেন্ট
+        </button>
+        <button 
+          className={`btn ${activeTab === 'participants' ? 'primary' : 'ghost'}`} 
+          style={{ flex: 1 }}
+          onClick={() => setActiveTab('participants')}
+        >
+          <Search size={16} /> অংশগ্রহণকারী ম্যানেজমেন্ট
+        </button>
       </div>
 
-      {error && <div className="error-box"><AlertCircle size={18} /> {error}</div>}
+      {activeTab === 'participants' && (
+        <>
+          <div className="admin-controls card">
+            <div className="selector-group">
+              <label>এডিটাথন নির্বাচন করুন</label>
+              <select 
+                value={selectedCode} 
+                onChange={(e) => handleSelectEditathon(e.target.value)}
+                className="admin-select"
+              >
+                <option value="">নির্বাচন করুন...</option>
+                {editathons.map(ed => (
+                  <option key={ed.code} value={ed.code}>{ed.name}</option>
+                ))}
+              </select>
+            </div>
 
-      {selectedCode && (
-        <div className="card participants-card">
+            {selectedCode && (
+              <div className="search-group">
+                <label>অংশগ্রহণকারী খুঁজুন</label>
+                <div className="search-input-wrapper">
+                  <Search size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="ইউজারনেম..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && <div className="error-box"><AlertCircle size={18} /> {error}</div>}
+
+          {selectedCode && (
+            <div className="card participants-card">
+              <div className="card-header">
+                <h3>অংশগ্রহণকারী তালিকা ({participants.length})</h3>
+              </div>
+              <div className="table-wrap">
+                {loading ? (
+                  <div className="loading-state">
+                    <Loader2 className="spin" size={32} />
+                    <p>অংশগ্রহণকারী লোড হচ্ছে...</p>
+                  </div>
+                ) : (
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>ব্যবহারকারী নাম</th>
+                        <th>অবস্থা</th>
+                        <th style={{ textAlign: 'right' }}>অ্যাকশন</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredParticipants.map(p => (
+                        <tr key={p.username} className={p.isBanned ? 'banned-row' : ''}>
+                          <td>{p.username}</td>
+                          <td>
+                            {p.isBanned ? (
+                              <span className="status-badge danger">নিষিদ্ধ ব্যবহারকারী</span>
+                            ) : (
+                              <span className="status-badge success">সক্রিয়</span>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button 
+                              className={`btn btn-sm ${p.isBanned ? 'success outline' : 'danger outline'}`}
+                              onClick={() => handleBanAction(p.username, p.isBanned)}
+                              disabled={actionLoading === p.username}
+                            >
+                              {actionLoading === p.username ? (
+                                <Loader2 className="spin" size={14} />
+                              ) : p.isBanned ? (
+                                <><UserCheck size={14} /> আনব্যান</>
+                              ) : (
+                                <><UserMinus size={14} /> ব্যান করুন</>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredParticipants.length === 0 && (
+                        <tr>
+                          <td colSpan={3} style={{ textAlign: 'center', padding: '40px' }}>
+                            কোনো অংশগ্রহণকারী পাওয়া যায়নি।
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'management' && (
+        <div className="card management-card">
           <div className="card-header">
-            <h3>অংশগ্রহণকারী তালিকা ({participants.length})</h3>
+            <h3>এডিটাথন ম্যানেজমেন্ট</h3>
+            <p className="small-text">এখানে যে এডিটাথনগুলো অ্যালাউ করবেন শুধু সেগুলোই ট্র্যাকিং লিস্টে দেখাবে।</p>
           </div>
           <div className="table-wrap">
-            {loading ? (
+            {mgmtLoading ? (
               <div className="loading-state">
                 <Loader2 className="spin" size={32} />
-                <p>অংশগ্রহণকারী লোড হচ্ছে...</p>
+                <p>সব এডিটাথন লোড হচ্ছে...</p>
               </div>
             ) : (
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>ব্যবহারকারী নাম</th>
-                    <th>অবস্থা</th>
-                    <th style={{ textAlign: 'right' }}>অ্যাকশন</th>
+                    <th>নাম</th>
+                    <th>কোড</th>
+                    <th style={{ textAlign: 'right' }}>ট্র্যাকিং স্ট্যাটাস</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredParticipants.map(p => (
-                    <tr key={p.username} className={p.isBanned ? 'banned-row' : ''}>
-                      <td>{p.username}</td>
-                      <td>
-                        {p.isBanned ? (
-                          <span className="status-badge danger">নিষিদ্ধ ব্যবহারকারী</span>
-                        ) : (
-                          <span className="status-badge success">সক্রিয়</span>
-                        )}
-                      </td>
+                  {allEditathons.map(ed => (
+                    <tr key={ed.code}>
+                      <td>{ed.name}</td>
+                      <td><code>{ed.code}</code></td>
                       <td style={{ textAlign: 'right' }}>
                         <button 
-                          className={`btn btn-sm ${p.isBanned ? 'success outline' : 'danger outline'}`}
-                          onClick={() => handleBanAction(p.username, p.isBanned)}
-                          disabled={actionLoading === p.username}
+                          className={`btn btn-sm ${ed.isEnabled ? 'success' : 'secondary outline'}`}
+                          style={{ minWidth: '120px' }}
+                          onClick={() => toggleTracking(ed.code, ed.isEnabled)}
+                          disabled={actionLoading === ed.code}
                         >
-                          {actionLoading === p.username ? (
+                          {actionLoading === ed.code ? (
                             <Loader2 className="spin" size={14} />
-                          ) : p.isBanned ? (
-                            <><UserCheck size={14} /> আনব্যান</>
+                          ) : ed.isEnabled ? (
+                            <><ToggleRight size={16} /> চালু আছে</>
                           ) : (
-                            <><UserMinus size={14} /> ব্যান করুন</>
+                            <><ToggleLeft size={16} /> বন্ধ আছে</>
                           )}
                         </button>
                       </td>
                     </tr>
                   ))}
-                  {filteredParticipants.length === 0 && (
-                    <tr>
-                      <td colSpan={3} style={{ textAlign: 'center', padding: '40px' }}>
-                        কোনো অংশগ্রহণকারী পাওয়া যায়নি।
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             )}
@@ -275,6 +383,13 @@ export const AdminPanel: React.FC = () => {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        .ghost {
+          background: transparent;
+          color: var(--text);
+        }
+        .ghost:hover {
+          background: var(--glass);
         }
       `}</style>
     </div>

@@ -27,18 +27,17 @@ async def run_sync_cycle(relevant):
 def background_monitor():
     while True:
         try:
-            editathons = get_bn_editathons()
+            # Only sync editathons that have been enabled by admin
             relevant = []
-            for e in editathons:
-                try:
-                    if datetime.strptime(e.get('finish', '1970-01-01T00:00:00Z'), "%Y-%m-%dT%H:%M:%SZ") >= datetime(2026, 1, 1):
-                        relevant.append(e)
-                except: relevant.append(e)
+            with db as conn:
+                rows = conn.execute("SELECT code, name FROM enabled_editathons").fetchall()
+                relevant = [{"code": r[0], "name": r[1]} for r in rows]
             
-            relevant.sort(key=lambda e: e.get('finish', ''), reverse=True)
-            smart_log(f"[Sync] Cycle started for {len(relevant)} active editathons", component="sync")
-            
-            asyncio.run(run_sync_cycle(relevant))
+            if not relevant:
+                smart_log("[Sync] No enabled editathons to sync", component="sync")
+            else:
+                smart_log(f"[Sync] Cycle started for {len(relevant)} enabled editathons", component="sync")
+                asyncio.run(run_sync_cycle(relevant))
             
             with db as conn:
                 conn.execute("INSERT OR REPLACE INTO monitor_status (key, last_run) VALUES (?, ?)", ("main", datetime.now().isoformat()))
