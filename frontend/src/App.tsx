@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate, Routes, Route } from 'react-router-dom';
+import { useParams, useNavigate, Routes, Route, useLocation } from 'react-router-dom';
 import { Header } from './components/Header';
 import { EditathonSelector } from './components/EditathonSelector';
 import { ProgressBar } from './components/ProgressBar';
@@ -50,6 +50,7 @@ type SortConfig = {
 const AppContent: React.FC = () => {
   const { code, tab } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [editathons, setEditathons] = useState<Editathon[]>([]);
   const [selectedCode, setSelectedCode] = useState('');
   const [loading, setLoading] = useState(true);
@@ -183,7 +184,11 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (window.location.pathname.startsWith('/admin')) return;
+    // Extremely aggressive guard to prevent any redirection for admin paths
+    const isLoginPage = location.pathname.startsWith('/admin');
+    if (isLoginPage || code === 'admin') {
+      return;
+    }
 
     if (code) {
       setSelectedCode(code);
@@ -200,9 +205,10 @@ const AppContent: React.FC = () => {
       else if (tab === 'rejected') handleRejectedArticles(code);
       else if (tab === 'daily') handleDailyStats(code);
     }
-  }, [code, tab, navigate, handleWordCount, handleJuryStats, handleRejectedArticles, handleDailyStats]);
+  }, [code, tab, navigate, location.pathname, handleWordCount, handleJuryStats, handleRejectedArticles, handleDailyStats]);
 
   const onSelectEditathon = (newCode: string) => {
+    if (!newCode || newCode === 'admin') return;
     setSelectedCode(newCode);
     navigate(`/${newCode}/${activeTab}`);
   };
@@ -213,6 +219,11 @@ const AppContent: React.FC = () => {
       navigate(`/${selectedCode}/${newTab}`);
     }
   };
+
+  // Explicit render guard
+  if (code === 'admin' || location.pathname.startsWith('/admin')) {
+    return null;
+  }
 
   const toggleUser = (user: string) => {
     setExpandedUser(expandedUser === user ? null : user);
