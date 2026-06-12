@@ -314,9 +314,9 @@ const AppContent: React.FC = () => {
   }, [wordCountData]);
 
   const renderBadge = (user: string) => {
-    if (user === topPerformers.gold) return <Award size={18} color="#ffd700" fill="#ffd70033" title="১ম স্থান" />;
-    if (user === topPerformers.silver) return <Award size={18} color="#c0c0c0" fill="#c0c0c033" title="২য় স্থান" />;
-    if (user === topPerformers.bronze) return <Award size={18} color="#cd7f32" fill="#cd7f3233" title="৩য় স্থান" />;
+    if (user === topPerformers.gold) return <span title="১ম স্থান"><Award size={18} color="#ffd700" fill="#ffd70033" /></span>;
+    if (user === topPerformers.silver) return <span title="২য় স্থান"><Award size={18} color="#c0c0c0" fill="#c0c0c033" /></span>;
+    if (user === topPerformers.bronze) return <span title="৩য় স্থান"><Award size={18} color="#cd7f32" fill="#cd7f3233" /></span>;
     return null;
   };
 
