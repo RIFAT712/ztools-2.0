@@ -59,12 +59,22 @@ export const AdminPanel: React.FC = () => {
 
   const toggleTracking = async (code: string, currentStatus: boolean) => {
     setActionLoading(code);
+    const newStatus = !currentStatus;
     try {
-      await axios.post('/api/admin/editathons/toggle', { code, isEnabled: !currentStatus });
-      setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: !currentStatus } : e));
-      // Refresh active list
-      const edRes = await axios.get('/api/editathons');
-      setEditathons(edRes.data.editathons);
+      await axios.post('/api/admin/editathons/toggle', { code, isEnabled: newStatus });
+      
+      // Update the full list state
+      setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: newStatus } : e));
+      
+      // Optimistically update the active editathons list without a full re-fetch
+      if (newStatus) {
+        const target = allEditathons.find(e => e.code === code);
+        if (target) {
+          setEditathons(prev => [...prev, { ...target, isEnabled: true }].sort((a, b) => a.name.localeCompare(b.name)));
+        }
+      } else {
+        setEditathons(prev => prev.filter(e => e.code !== code));
+      }
     } catch {
       alert('অ্যাকশনটি সফল হয়নি।');
     } finally {
@@ -300,8 +310,29 @@ export const AdminPanel: React.FC = () => {
       )}
 
       <style>{`
-        /* ... previous styles ... */
+        .admin-panel {
+          max-width: 1000px;
+          margin: 0 auto;
+          padding: 10px;
+          padding-bottom: 40px;
+        }
+        .table-wrap {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          border-radius: 8px;
+        }
+        .admin-table {
+          width: 100%;
+          min-width: 600px; /* Force minimum width to prevent cutting on mobile */
+          border-collapse: collapse;
+        }
+        .card {
+          overflow: hidden; /* Ensure card content doesn't bleed out */
+          margin-bottom: 20px;
+        }
         .switch-toggle {
+          flex-shrink: 0; /* Prevent switch from shrinking */
           width: 60px;
           height: 30px;
           border-radius: 15px;
