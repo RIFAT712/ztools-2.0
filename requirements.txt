@@ -2,8 +2,6 @@ fastapi
 uvicorn
 python-multipart
 starlette
-# Authlib removed
-# itsdangerous removed
 a2wsgi
 httpx
 aiohttp
@@ -11,3 +9,4 @@ sseclient-py
 python-dotenv
 requests
 matplotlib
+PyJWT

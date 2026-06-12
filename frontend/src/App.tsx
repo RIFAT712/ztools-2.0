@@ -5,6 +5,8 @@ import { Header } from './components/Header';
 import { EditathonSelector } from './components/EditathonSelector';
 import { ProgressBar } from './components/ProgressBar';
 import DailyProgress from './components/DailyProgress';
+import { AdminLogin } from './components/AdminLogin';
+import { AdminPanel } from './components/AdminPanel';
 import { toBengaliDigits } from './utils';
 import { Download, Copy, Award, AlertCircle } from 'lucide-react';
 
@@ -36,6 +38,7 @@ interface UserData {
   rejected: number;
   total: number;
   conflicts: number;
+  isBanned?: boolean;
   articles: Article[];
 }
 
@@ -90,7 +93,7 @@ const AppContent: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: targetCode })
       });
-      if (!response.ok) throw new Error('Network response was not ok');
+      if (!response.ok) throw new Error('সার্ভারের সাথে সংযোগে সমস্যা হচ্ছে।');
       const reader = response.body?.getReader();
       if (!reader) return;
       const decoder = new TextDecoder();
@@ -146,7 +149,7 @@ const AppContent: React.FC = () => {
           } else if (chunk.type === 'error') { setError(chunk.message); setProgressVisible(false); }
         }
       }
-    } catch (err: any) { setError(err.message); setProgressVisible(false); }
+    } catch (err: any) { setError(err.message === 'Failed to fetch' ? 'সার্ভারের সাথে সংযোগে সমস্যা হচ্ছে।' : err.message); setProgressVisible(false); }
   }, []);
 
   const handleJuryStats = useCallback(async (targetCode: string) => {
@@ -156,7 +159,7 @@ const AppContent: React.FC = () => {
     try {
       const res = await axios.post('/api/jury_stats', { code: targetCode });
       setJuryStats(res.data);
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { setError('পর্যালোচনা পরিসংখ্যান লোড করতে সমস্যা হয়েছে।'); }
   }, []);
 
   const handleRejectedArticles = useCallback(async (targetCode: string) => {
@@ -166,7 +169,7 @@ const AppContent: React.FC = () => {
     try {
       const res = await axios.post('/api/rejected_articles', { code: targetCode });
       setRejectedArticles(res.data);
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { setError('বাতিলকৃত নিবন্ধের তালিকা লোড করতে সমস্যা হয়েছে।'); }
   }, []);
 
   const handleDailyStats = useCallback(async (targetCode: string) => {
@@ -176,7 +179,7 @@ const AppContent: React.FC = () => {
     try {
       const res = await axios.post('/api/daily_stats', { code: targetCode });
       setDailyStats(res.data);
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { setError('প্রতিদিনের পরিসংখ্যান লোড করতে সমস্যা হয়েছে।'); }
   }, []);
 
   useEffect(() => {
@@ -218,16 +221,24 @@ const AppContent: React.FC = () => {
   }, [sortConfig]);
 
   const sortedWordCountData = useMemo(() => {
-    if (!wordCountData) return [];
+    if (!wordCountData) return { active: [], banned: [] };
     let items = Object.entries(wordCountData).map(([user, data]) => ({ user, ...data }));
-    items.sort((a, b) => {
+    
+    const active = items.filter(i => !i.isBanned);
+    const banned = items.filter(i => i.isBanned);
+
+    const sortFn = (a: any, b: any) => {
       const aVal = (a as any)[effectiveSort.key];
       const bVal = (b as any)[effectiveSort.key];
       if (aVal < bVal) return effectiveSort.direction === 'asc' ? -1 : 1;
       if (aVal > bVal) return effectiveSort.direction === 'asc' ? 1 : -1;
       return 0;
-    });
-    return items;
+    };
+
+    active.sort(sortFn);
+    banned.sort(sortFn);
+
+    return { active, banned };
   }, [wordCountData, effectiveSort]);
 
   const sortedJuryStats = useMemo(() => {
@@ -291,6 +302,7 @@ const AppContent: React.FC = () => {
   const topPerformers = useMemo(() => {
     if (!wordCountData) return { gold: '', silver: '', bronze: '' };
     const sorted = Object.entries(wordCountData)
+      .filter(([, data]) => !data.isBanned)
       .map(([user, data]) => ({ user, accepted: data.accepted }))
       .sort((a, b) => b.accepted - a.accepted);
     return {
@@ -301,9 +313,9 @@ const AppContent: React.FC = () => {
   }, [wordCountData]);
 
   const renderBadge = (user: string) => {
-    if (user === topPerformers.gold) return <Award size={18} color="#ffd700" fill="#ffd70033" />;
-    if (user === topPerformers.silver) return <Award size={18} color="#c0c0c0" fill="#c0c0c033" />;
-    if (user === topPerformers.bronze) return <Award size={18} color="#cd7f32" fill="#cd7f3233" />;
+    if (user === topPerformers.gold) return <Award size={18} color="#ffd700" fill="#ffd70033" title="১ম স্থান" />;
+    if (user === topPerformers.silver) return <Award size={18} color="#c0c0c0" fill="#c0c0c033" title="২য় স্থান" />;
+    if (user === topPerformers.bronze) return <Award size={18} color="#cd7f32" fill="#cd7f3233" title="৩য় স্থান" />;
     return null;
   };
 
@@ -319,7 +331,7 @@ const AppContent: React.FC = () => {
     if (!wordCountData) return;
     let wt = '{| class="wikitable sortable"\n! # !! ব্যবহারকারী !! গৃহীত শব্দসংখ্যা !! অবস্থান\n';
     
-    sortedWordCountData.forEach((d, i) => {
+    sortedWordCountData.active.forEach((d: any, i: number) => {
       const rank = i + 1;
       const ordinal = getBengaliOrdinal(rank);
       const rowStyle = rank <= 10 ? ' style="background:#f9f9f9;"' : '';
@@ -387,7 +399,7 @@ const AppContent: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `detailed_stats_${selectedCode}.txt`;
+    a.download = `বিস্তারিত_পরিসংখ্যান_${selectedCode}.txt`;
     a.click();
   };
 
@@ -404,15 +416,15 @@ const AppContent: React.FC = () => {
 
   const downloadCSV = () => {
     if (!wordCountData) return;
-    let csv = 'Rank,User,Accepted,Unreviewed,Rejected,Total Words\n';
-    sortedWordCountData.forEach((d, i) => {
+    let csv = 'ক্রমিক,ব্যবহারকারী,গৃহীত,অপর্যালোচিত,বাতিল,মোট শব্দ\n';
+    sortedWordCountData.active.forEach((d: any, i: number) => {
       csv += `${i + 1},${d.user},${d.accepted},${d.unreviewed},${d.rejected},${d.total}\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `stats_${selectedCode}.csv`;
+    a.download = `পরিসংখ্যান_${selectedCode}.csv`;
     a.click();
   };
 
@@ -455,7 +467,7 @@ const AppContent: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedWordCountData.map((data, index) => (
+                  {(sortedWordCountData as any).active.map((data: any, index: number) => (
                     <React.Fragment key={data.user}>
                       <tr 
                         className={`user-row ${expandedUser === data.user ? 'active' : ''}`} 
@@ -485,13 +497,13 @@ const AppContent: React.FC = () => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {data.articles.map((art, i) => (
+                                  {data.articles.map((art: any, i: number) => (
                                     <tr key={i} className={art.multiJuror ? 'multi-juror-row' : ''}>
                                       <td className="left"><div className="article-link-cell">
                                         <a href={`https://${siteUrl}/wiki/${encodeURIComponent(art.title)}`} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{art.title} {art.isRedirect && <span className="small-text">(পুনর্নির্দেশ)</span>}</a>
                                       </div></td>
                                       <td><span className={`status-badge ${art.status === 'গৃহীত হয়েছে' ? 'success' : art.status === 'গৃহীত হয়নি' ? 'danger' : 'neutral'}`}>{art.status}</span></td>
-                                      <td><span className="jurors-text">{art.jurors || 'N/A'}</span></td>
+                                      <td><span className="jurors-text">{art.jurors || '-'}</span></td>
                                       <td className="num-td">{toBengaliDigits(art.words)}</td>
                                     </tr>
                                   ))}
@@ -503,9 +515,74 @@ const AppContent: React.FC = () => {
                       )}
                     </React.Fragment>
                   ))}
+
+                  {(sortedWordCountData as any).banned.length > 0 && (
+                    <>
+                      <tr className="banned-header-row">
+                        <td colSpan={6}>নিষিদ্ধ ব্যবহারকারী</td>
+                      </tr>
+                      {(sortedWordCountData as any).banned.map((data: any) => (
+                        <React.Fragment key={data.user}>
+                          <tr 
+                            className={`user-row banned-user-row ${expandedUser === data.user ? 'active' : ''}`} 
+                            onClick={() => toggleUser(data.user)}
+                          >
+                            <td>-</td>
+                            <td className="user-td">{data.user} <span className="small-text danger">(নিষিদ্ধ ব্যবহারকারী)</span></td>
+                            <td className="num-td">{toBengaliDigits(data.accepted)}</td>
+                            <td className="num-td">{toBengaliDigits(data.unreviewed)}</td>
+                            <td className="num-td">{toBengaliDigits(data.rejected)}</td>
+                            <td className="num-td">{toBengaliDigits(data.total)}</td>
+                          </tr>
+                          {expandedUser === data.user && (
+                            <tr className="articles-row">
+                              <td colSpan={6}>
+                                <div className="inner-table-container">
+                                  <table className="inner-table">
+                                    <thead>
+                                      <tr>
+                                        <th style={{ width: '40%' }}>নিবন্ধের নাম</th>
+                                        <th style={{ width: '20%' }}>অবস্থা</th>
+                                        <th style={{ width: '25%' }}>পর্যালোচক</th>
+                                        <th style={{ width: '15%' }}>শব্দসংখ্যা</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {data.articles.map((art: any, i: number) => (
+                                        <tr key={i}>
+                                          <td className="left">{art.title}</td>
+                                          <td><span className={`status-badge ${art.status === 'গৃহীত হয়েছে' ? 'success' : art.status === 'গৃহীত হয়নি' ? 'danger' : 'neutral'}`}>{art.status}</span></td>
+                                          <td>{art.jurors || '-'}</td>
+                                          <td className="num-td">{toBengaliDigits(art.words)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
+            <style>{`
+              .banned-header-row td {
+                background: var(--banned-header) !important;
+                color: var(--banned-text);
+                font-weight: bold;
+                text-align: center;
+                padding: 10px !important;
+                border-top: 2px solid var(--danger);
+              }
+              .banned-user-row td {
+                background: var(--banned-bg) !important;
+                color: var(--banned-text);
+              }
+            `}</style>
           </div>
         )}
         {juryStats && activeTab === 'jury' && (
@@ -596,7 +673,7 @@ const AppContent: React.FC = () => {
           <DailyProgress data={dailyStats} code={selectedCode} />
         )}
       </div>
-      <footer className="footer"><div className="footer-content"><div className="footer-section"><p className="copyright">© ২০২৬ | উইকি এডিটাথন টুলস</p><p className="small-text">উইকিপিডিয়া এডিটাথন পরিচালনার একটি উন্মুক্ত টুল।</p></div><div className="footer-links"><a href="https://github.com/RIFAT712/ztools-2.0" target="_blank" rel="noreferrer" className="footer-link">GitHub</a></div></div></footer>
+      <footer className="footer"><div className="footer-content"><div className="footer-section"><p className="copyright">© ২০২৬ | উইকি এডিটাথন টুলস</p><p className="small-text">উইকিপিডিয়া এডিটাথন পরিচালনার একটি উন্মুক্ত টুল।</p></div><div className="footer-links"><a href="https://github.com/RIFAT712/ztools-2.0" target="_blank" rel="noreferrer" className="footer-link">গিটহাব</a></div></div></footer>
     </div>
   );
 };
@@ -605,6 +682,8 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<AppContent />} />
+      <Route path="/admin" element={<AdminLogin />} />
+      <Route path="/admin/dashboard" element={<AdminPanel />} />
       <Route path="/:code" element={<AppContent />} />
       <Route path="/:code/:tab" element={<AppContent />} />
     </Routes>

@@ -65,7 +65,18 @@ class DatabaseManager:
             cursor.execute('''CREATE TABLE IF NOT EXISTS monitor_status (key TEXT PRIMARY KEY, last_run TEXT)''')
             cursor.execute('''CREATE TABLE IF NOT EXISTS fountain_cache (code TEXT PRIMARY KEY, data TEXT, last_updated TEXT)''')
             
-            # 4. Load memory cache
+            # 4. Admin and Banning tables
+            cursor.execute('''CREATE TABLE IF NOT EXISTS admins (
+                username TEXT PRIMARY KEY, 
+                password_hash TEXT
+            )''')
+            cursor.execute('''CREATE TABLE IF NOT EXISTS banned_users (
+                editathon_code TEXT, 
+                username TEXT,
+                PRIMARY KEY (editathon_code, username)
+            )''')
+            
+            # 5. Load memory cache
             cursor.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache")
             rows = cursor.fetchall()
             for row in rows:

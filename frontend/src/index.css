@@ -15,6 +15,10 @@
   --danger-bg: rgba(255, 82, 82, 0.12);
   --warning: #ffd600;
   --warning-bg: rgba(255, 214, 0, 0.08);
+  --chart-grid: #262626;
+  --banned-bg: #1e1b1b;
+  --banned-header: #450a0a;
+  --banned-text: #fecaca;
 }
 
 body.light {
@@ -34,6 +38,10 @@ body.light {
   --danger-bg: rgba(209, 36, 47, 0.08);
   --warning: #9a6700;
   --warning-bg: rgba(154, 103, 0, 0.06);
+  --chart-grid: #eeeeee;
+  --banned-bg: #fff1f2;
+  --banned-header: #fee2e2;
+  --banned-text: #991b1b;
 }
 
 * {

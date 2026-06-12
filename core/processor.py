@@ -119,11 +119,25 @@ def get_all_cached_for_editathon(code):
         ''', (code,)).fetchall()
     return {r[0]: {"words": r[1], "actual_title": r[2], "is_redirect": bool(r[3]), "last_updated": r[4], "article_title": r[5]} for r in rows}
 
-def calculate_leaderboard(data, current_cache):
+def get_banned_users(code):
+    try:
+        with db as conn:
+            rows = conn.execute("SELECT username FROM banned_users WHERE editathon_code = ?", (code,)).fetchall()
+            return [r[0] for r in rows]
+    except:
+        return []
+
+def calculate_leaderboard(data, current_cache, banned_users=None):
     if not data: return None, None
+    editathon_code = data.get("code")
+    if not banned_users and editathon_code:
+        banned_users = get_banned_users(editathon_code)
+    
+    banned_users = set(banned_users or [])
     wiki_code = data.get("wiki", "wiki:bn")
     site_url = get_wiki_url(wiki_code)
-    totals = defaultdict(lambda: {"accepted": 0, "unreviewed": 0, "rejected": 0, "total": 0, "count": 0, "articles": []})
+    totals = defaultdict(lambda: {"accepted": 0, "unreviewed": 0, "rejected": 0, "total": 0, "count": 0, "articles": [], "isBanned": False})
+    
     for art in data.get("articles", []):
         user = art.get("user")
         if not user: continue
@@ -140,6 +154,8 @@ def calculate_leaderboard(data, current_cache):
         u_s = totals[user]
         u_s["total"] += w
         u_s["count"] += 1
+        u_s["isBanned"] = user in banned_users
+        
         if status == "গৃহীত হয়েছে": u_s["accepted"] += w
         elif status == "গৃহীত হয়নি": u_s["rejected"] += w
         else: u_s["unreviewed"] += w

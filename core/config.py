@@ -12,6 +12,10 @@ USER_AGENT = os.getenv("USER_AGENT")
 if not USER_AGENT or "your_username" in USER_AGENT:
     USER_AGENT = "ZToolsEditathonManager/1.4 (https://github.com/shafayet/ztools; Community Tool)"
 
+JWT_SECRET = os.getenv("JWT_SECRET", "ztools_secret_key_change_me")
+JWT_ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 1 week
+
 # Shared memory cache
 tracked_hashes = set()
 

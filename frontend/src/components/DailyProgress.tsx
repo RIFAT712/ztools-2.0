@@ -64,7 +64,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 href={`${API_BASE_URL}/api/daily_graph/${code}?metric=total_words&format=svg`} 
                 className="icon-btn" 
                 title="SVG ডাউনলোড করুন"
-                download={`words_growth_${code}.svg`}
+                download={`শব্দ_বৃদ্ধি_${code}.svg`}
               >
                 <Download size={14} />
               </a>
@@ -79,7 +79,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                     <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={formatDate} 
@@ -125,7 +125,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 href={`${API_BASE_URL}/api/daily_graph/${code}?metric=total_count&format=svg`} 
                 className="icon-btn" 
                 title="SVG ডাউনলোড করুন"
-                download={`articles_count_${code}.svg`}
+                download={`নিবন্ধ_সংখ্যা_${code}.svg`}
               >
                 <Download size={14} />
               </a>
@@ -140,7 +140,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={formatDate} 
@@ -179,14 +179,14 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
         </div>
 
         <div className="chart-container card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="small">প্রতিদিনের নিবন্ধ জমা</div>
             {code && (
               <a 
                 href={`${API_BASE_URL}/api/daily_graph/${code}?metric=daily_count&format=svg`} 
                 className="icon-btn" 
                 title="SVG ডাউনলোড করুন"
-                download={`daily_articles_${code}.svg`}
+                download={`প্রতিদিনের_নিবন্ধ_${code}.svg`}
               >
                 <Download size={14} />
               </a>
@@ -195,7 +195,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
           <div className="chart-body" style={{ height: '300px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ left: 20, right: 20, top: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={formatDate} 
@@ -233,7 +233,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
                 href={`${API_BASE_URL}/api/daily_graph/${code}?metric=daily_words&format=svg`} 
                 className="icon-btn" 
                 title="SVG ডাউনলোড করুন"
-                download={`daily_words_${code}.svg`}
+                download={`প্রতিদিনের_শব্দ_${code}.svg`}
               >
                 <Download size={14} />
               </a>
@@ -242,7 +242,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
           <div className="chart-body" style={{ height: '300px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ left: 20, right: 20, top: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
                 <XAxis 
                   dataKey="date" 
                   tickFormatter={formatDate} 
@@ -300,7 +300,7 @@ const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
           padding: 40px;
           text-align: center;
           color: #666;
-          background: white;
+          background: var(--card);
           border-radius: 8px;
           margin-top: 20px;
         }
