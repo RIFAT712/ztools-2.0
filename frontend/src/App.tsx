@@ -329,9 +329,10 @@ const AppContent: React.FC = () => {
 
   const copyWikitable = () => {
     if (!wordCountData) return;
+    const { active, banned } = sortedWordCountData as any;
     let wt = '{| class="wikitable sortable"\n! # !! ব্যবহারকারী !! গৃহীত শব্দসংখ্যা !! অবস্থান\n';
     
-    sortedWordCountData.active.forEach((d: any, i: number) => {
+    active.forEach((d: any, i: number) => {
       const rank = i + 1;
       const ordinal = getBengaliOrdinal(rank);
       const rowStyle = rank <= 10 ? ' style="background:#f9f9f9;"' : '';
@@ -342,6 +343,14 @@ const AppContent: React.FC = () => {
       
       wt += `|-${rowStyle}\n| ${toBengaliDigits(rank)} || [[উইকিপিডিয়া:অমর_একুশে_নিবন্ধ_প্রতিযোগিতা_২০২৬/ফলাফল#${d.user}|${d.user}]] || ${toBengaliDigits(d.accepted)} || ${ordinal}\n`;
     });
+
+    if (banned.length > 0) {
+      wt += '|-\n! colspan="4" style="background:#fee7e7; color:#d32f2f; text-align:center;" | নিষিদ্ধ ব্যবহারকারী\n';
+      banned.forEach((d: any) => {
+        wt += `|-\n| - || [[User:${d.user}|${d.user}]] || ${toBengaliDigits(d.accepted)} || নিষিদ্ধ\n`;
+      });
+    }
+
     wt += '|}';
     navigator.clipboard.writeText(wt);
     alert('মূল উইকি টেবিল ক্লিপবোর্ডে কপি করা হয়েছে!');
