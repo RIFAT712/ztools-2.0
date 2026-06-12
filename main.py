@@ -125,6 +125,7 @@ async def health():
 # Admin APIs
 @app.post("/api/admin/login")
 async def admin_login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+# ... (lines omitted for brevity, but I will provide the full block in the tool call)
     try:
         with db as conn:
             row = conn.execute("SELECT password_hash FROM admins WHERE username = ?", (form_data.username,)).fetchone()
@@ -140,7 +141,7 @@ async def admin_login(request: Request, response: Response, form_data: OAuth2Pas
                 value=token,
                 httponly=True,
                 max_age=60 * 60 * 24 * 7,
-                samesite="lax",
+                samesite="strict",
                 secure=is_secure
             )
             return {"access_token": token, "token_type": "bearer"}
@@ -232,10 +233,23 @@ async def admin_toggle_editathon(request: Request, user: str = Depends(get_curre
         else:
             with db as conn:
                 conn.execute("DELETE FROM enabled_editathons WHERE code = ?", (code,))
+                # Purge all related data to keep DB clean (Selective Tracking)
+                conn.execute("DELETE FROM wordcount_cache WHERE editathon_code = ?", (code,))
+                conn.execute("DELETE FROM fountain_cache WHERE code = ?", (code,))
+                conn.execute("DELETE FROM banned_users WHERE editathon_code = ?", (code,))
+            
+            # Refresh memory set to ignore these articles in realtime monitor
+            db.refresh_tracked_hashes(tracked_hashes)
         
         return {"status": "success"}
     except HTTPException: raise
     except Exception as e: raise HTTPException(status_code=500, detail=str(e))
+
+def ensure_enabled_editathon(code: str):
+    with db as conn:
+        row = conn.execute("SELECT 1 FROM enabled_editathons WHERE code = ?", (code,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=403, detail=f"Editathon {code} is not enabled for tracking")
 
 @app.get("/api/editathons")
 async def get_editathons():
@@ -415,6 +429,7 @@ async def count_words(request: Request):
     data = await request.json()
     code = data.get("code", "").strip()
     if not code: raise HTTPException(status_code=400, detail="No code provided")
+    ensure_enabled_editathon(code)
     q = asyncio.Queue()
     asyncio.create_task(process_word_counts_async(code, q, source="UI"))
     async def generate():

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, Security, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from core.config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from core.db import db
 
 security = HTTPBearer()
 
@@ -44,4 +45,13 @@ async def get_current_user(request: Request):
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     
-    return payload["sub"]
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=401, detail="Invalid token payload")
+        
+    with db as conn:
+        row = conn.execute("SELECT 1 FROM admins WHERE username = ?", (username,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=401, detail="User no longer exists")
+            
+    return username

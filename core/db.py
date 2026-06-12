@@ -95,4 +95,17 @@ class DatabaseManager:
                     
             smart_log(f"[DB] Initialized with {len(tracked_hashes_set)} tracked hashes")
 
+    def refresh_tracked_hashes(self, tracked_hashes_set):
+        with self as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache")
+            rows = cursor.fetchall()
+            tracked_hashes_set.clear()
+            for row in rows:
+                if row[0] and row[1]:
+                    tracked_hashes_set.add(f"{row[0]}:{row[1]}")
+                elif row[1]:
+                    tracked_hashes_set.add(row[1])
+            smart_log(f"[DB] Tracked hashes refreshed: {len(tracked_hashes_set)} entries")
+
 db = DatabaseManager(DB_FILE)
