@@ -58,27 +58,28 @@ export const AdminPanel: React.FC = () => {
   };
 
   const toggleTracking = async (code: string, currentStatus: boolean) => {
-    setActionLoading(code);
     const newStatus = !currentStatus;
+    
+    // 1. Instant UI update (Optimistic)
+    setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: newStatus } : e));
+    if (newStatus) {
+      const target = allEditathons.find(e => e.code === code);
+      if (target) {
+        setEditathons(prev => [...prev, { ...target, isEnabled: true }].sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    } else {
+      setEditathons(prev => prev.filter(e => e.code !== code));
+    }
+
+    // 2. Background API call
     try {
       await axios.post('/api/admin/editathons/toggle', { code, isEnabled: newStatus });
-      
-      // Update the full list state
-      setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: newStatus } : e));
-      
-      // Optimistically update the active editathons list without a full re-fetch
-      if (newStatus) {
-        const target = allEditathons.find(e => e.code === code);
-        if (target) {
-          setEditathons(prev => [...prev, { ...target, isEnabled: true }].sort((a, b) => a.name.localeCompare(b.name)));
-        }
-      } else {
-        setEditathons(prev => prev.filter(e => e.code !== code));
-      }
-    } catch {
-      alert('অ্যাকশনটি সফল হয়নি।');
-    } finally {
-      setActionLoading(null);
+    } catch (err) {
+      // 3. Revert on failure
+      alert('অ্যাকশনটি সফল হয়নি। স্টেট রিসেট করা হচ্ছে।');
+      setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: currentStatus } : e));
+      const res = await axios.get('/api/editathons'); // Full refresh to be safe
+      setEditathons(res.data.editathons);
     }
   };
 
@@ -291,12 +292,9 @@ export const AdminPanel: React.FC = () => {
                           <button 
                             className={`switch-toggle ${ed.isEnabled ? 'on' : 'off'}`}
                             onClick={() => toggleTracking(ed.code, ed.isEnabled)}
-                            disabled={actionLoading === ed.code}
                             title={ed.isEnabled ? 'ট্র্যাকিং বন্ধ করুন' : 'ট্র্যাকিং চালু করুন'}
                           >
-                            <div className="switch-handle">
-                              {actionLoading === ed.code && <Loader2 className="spin" size={12} />}
-                            </div>
+                            <div className="switch-handle"></div>
                           </button>
                         </div>
                       </td>
@@ -316,66 +314,6 @@ export const AdminPanel: React.FC = () => {
           padding: 10px;
           padding-bottom: 40px;
         }
-        .table-wrap {
-          width: 100%;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          border-radius: 8px;
-        }
-        .admin-table {
-          width: 100%;
-          min-width: 600px; /* Force minimum width to prevent cutting on mobile */
-          border-collapse: collapse;
-        }
-        .card {
-          overflow: hidden; /* Ensure card content doesn't bleed out */
-          margin-bottom: 20px;
-        }
-        .switch-toggle {
-          flex-shrink: 0; /* Prevent switch from shrinking */
-          width: 60px;
-          height: 30px;
-          border-radius: 15px;
-          border: none;
-          position: relative;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .switch-toggle.on {
-          background-color: #22c55e; /* Green */
-        }
-        .switch-toggle.off {
-          background-color: #ef4444; /* Red */
-        }
-        .switch-toggle:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-        .switch-handle {
-          width: 24px;
-          height: 24px;
-          background-color: white;
-          border-radius: 50%;
-          position: absolute;
-          left: 3px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .switch-toggle.on .switch-handle {
-          left: 33px;
-        }
-        .admin-panel {
-          max-width: 900px;
-          margin: 0 auto;
-          padding-bottom: 40px;
-        }
         .admin-header {
           display: flex;
           justify-content: space-between;
@@ -386,6 +324,12 @@ export const AdminPanel: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 12px;
+        }
+        .admin-tabs {
+          display: flex;
+          gap: 4px;
+          padding: 4px;
+          margin-bottom: 24px;
         }
         .admin-controls {
           display: grid;
@@ -433,8 +377,23 @@ export const AdminPanel: React.FC = () => {
           color: var(--text);
           font-size: 15px;
         }
+        .table-wrap {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          border-radius: 8px;
+        }
+        .admin-table {
+          width: 100%;
+          min-width: 600px;
+          border-collapse: collapse;
+        }
         .admin-table th {
           background: var(--glass);
+        }
+        .card {
+          overflow: hidden;
+          margin-bottom: 20px;
         }
         .banned-row {
           background: var(--banned-bg);
@@ -462,6 +421,39 @@ export const AdminPanel: React.FC = () => {
         }
         .ghost:hover {
           background: var(--glass);
+        }
+        .switch-toggle {
+          flex-shrink: 0;
+          width: 60px;
+          height: 30px;
+          border-radius: 15px;
+          border: none;
+          position: relative;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .switch-toggle.on {
+          background-color: #22c55e;
+        }
+        .switch-toggle.off {
+          background-color: #ef4444;
+        }
+        .switch-handle {
+          width: 24px;
+          height: 24px;
+          background-color: white;
+          border-radius: 50%;
+          position: absolute;
+          left: 3px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .switch-toggle.on .switch-handle {
+          left: 33px;
         }
       `}</style>
     </div>
