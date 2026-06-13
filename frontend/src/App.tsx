@@ -373,9 +373,9 @@ const AppContent: React.FC = () => {
     });
 
     if (banned.length > 0) {
-      wt += '|-\n! colspan="4" style="background:#fee7e7; color:#d32f2f; text-align:center;" | নিষিদ্ধ ব্যবহারকারী\n';
+      wt += '|-\n! colspan="4" style="background:#fee7e7; color:#d32f2f; text-align:center;" | পুরষ্কার পাওয়ার অযোগ্য\n';
       banned.forEach((d: any) => {
-        wt += `|-\n| - || [[User:${d.user}|${d.user}]] || ${toBengaliDigits(d.accepted)} || নিষিদ্ধ\n`;
+        wt += `|-\n| - || [[User:${d.user}|${d.user}]] || ${toBengaliDigits(d.accepted)} || অযোগ্য\n`;
       });
     }
 
@@ -556,7 +556,7 @@ const AppContent: React.FC = () => {
                   {(sortedWordCountData as any).banned.length > 0 && (
                     <>
                       <tr className="banned-header-row">
-                        <td colSpan={6}>নিষিদ্ধ ব্যবহারকারী</td>
+                        <td colSpan={6}>পুরষ্কার পাওয়ার অযোগ্য ব্যবহারকারী</td>
                       </tr>
                       {(sortedWordCountData as any).banned.map((data: any) => (
                         <React.Fragment key={data.user}>
@@ -565,7 +565,7 @@ const AppContent: React.FC = () => {
                             onClick={() => toggleUser(data.user)}
                           >
                             <td>-</td>
-                            <td className="user-td">{data.user} <span className="small-text danger">(নিষিদ্ধ ব্যবহারকারী)</span></td>
+                            <td className="user-td">{data.user} <span className="small-text danger">(পুরষ্কার পাওয়ার অযোগ্য)</span></td>
                             <td className="num-td">{toBengaliDigits(data.accepted)}</td>
                             <td className="num-td">{toBengaliDigits(data.unreviewed)}</td>
                             <td className="num-td">{toBengaliDigits(data.rejected)}</td>

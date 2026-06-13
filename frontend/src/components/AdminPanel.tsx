@@ -30,7 +30,7 @@ export const AdminPanel: React.FC = () => {
     const checkAuth = async () => {
       try {
         // Parallel requests for faster loading
-        const [authRes, edRes] = await Promise.all([
+        const [, edRes] = await Promise.all([
           axios.get('/api/admin/check-auth'),
           axios.get('/api/editathons')
         ]);
