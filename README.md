@@ -35,6 +35,30 @@ ZTools 2.0 is a robust, high-performance management system designed specifically
 - **Monitoring**: SSE (Server-Sent Events) for real-time Wikipedia edit tracking.
 - **Visualization**: Matplotlib (for daily progress graphs).
 
+## 📝 Word Counting Procedure
+
+The system includes a specialized procedure for calculating word counts from WikiBooks and Wikipedia content, specifically designed to handle Wikitext and Bengali characters accurately.
+
+### 1. Data Extraction
+The procedure retrieves page content using the MediaWiki Action API with `rvprop=content` and `rvslots=main`. The content is extracted from the JSON response path: `query.pages[page_id].revisions[0].slots.main["*"]`.
+
+### 2. Wikitext Cleaning
+To ensure an accurate word count that reflects only readable text, a multi-stage cleaning process is applied using regular expressions:
+- **Comments**: Removes `<!-- ... -->` blocks.
+- **Math Expressions**: Completely removes `<math> ... </math>` tags and their LaTeX content, as math symbols do not count as words.
+- **HTML Tags**: Removes all other HTML-like tags (e.g., `<div>`, `<span>`, `<li>`).
+- **Templates**: Removes Wikitext template markers (e.g., `{{TextBox|1=...}}`) while preserving the content inside when applicable.
+- **Links**: Simplifies internal links `[[Target|Text]]` or `[[Target]]` to just the displayed text.
+- **Formatting**: Removes bold (`'''`) and italic (`''`) markers.
+- **Structural Markers**: Removes Wikitext structural symbols like headings (`==`), list bullets (`*`, `#`), and indentation (`:`, `;`).
+
+### 3. Word Counting Logic
+- **Punctuation**: Replaces common punctuation marks (including Bengali 'DARI' `।`) with spaces to prevent words from being joined incorrectly.
+- **Tokenization**: Splits the cleaned text by whitespace characters.
+- **Count**: The final word count is the total number of tokens generated after this cleaning process.
+
+This approach provides a "Cleaned Word Count" that aligns more closely with human reading expectations than a raw character or byte count.
+
 ## ⚙️ Installation & Setup
 
 1. **Clone the repository**:
