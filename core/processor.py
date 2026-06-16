@@ -7,7 +7,7 @@ import random
 import time
 from collections import defaultdict
 from core.config import USER_AGENT, tracked_hashes
-from core.logger import smart_log
+from core.logger import smart_log, log_cleaned_article
 from core.db import db
 from core.utils import normalize_title, get_title_hash, get_wiki_url, get_article_status, to_bn, get_wiki_dbname
 from core.api import fetch_fountain_data, fetch_fountain_data_async, get_session
@@ -35,15 +35,19 @@ def save_article_to_cache(code, res, wiki=None, conn=None):
     # smart_log(f"[DB] Saved: {title} ({res['words']} words)") # Too verbose for large syncs
 
 async def count_words_async(session, api_url, title, site_url, code=None):
+    is_bn = site_url.startswith('bn.')
     params = {
         "action": "query",
-        "prop": "extracts",
+        "prop": "extracts|revisions" if is_bn else "extracts",
         "explaintext": "1",
         "titles": title,
         "format": "json",
         "redirects": "1",
         "origin": "*"
     }
+    if is_bn:
+        params["rvprop"] = "content"
+        params["rvslots"] = "main"
     
     # Use a loop-bound semaphore to prevent "different event loop" errors in multi-loop environments
     loop = asyncio.get_running_loop()
@@ -83,13 +87,50 @@ async def count_words_async(session, api_url, title, site_url, code=None):
                         return 0, title, False, "MISSING"
                         
                     page_data = pages[page_id]
-                    content = page_data.get("extract", "")
                     actual_title = page_data.get("title", title)
                     is_redirect = "redirects" in data.get("query", {})
                     
-                    if site_url.startswith('bn.'):
-                        words = len(re.findall(r'[\u0980-\u09FF]+', content))
+                    if is_bn:
+                        revisions = page_data.get("revisions", [])
+                        if revisions:
+                            content = revisions[0].get("slots", {}).get("main", {}).get("*", "")
+                            
+                            # 1. Strip comments
+                            content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
+                            # 2. Strip math tags and content
+                            content = re.sub(r'<math>.*?</math>', ' ', content, flags=re.DOTALL | re.IGNORECASE)
+                            # 3. Strip ref tags and content
+                            content = re.sub(r'<ref.*?>.*?</ref>', ' ', content, flags=re.DOTALL | re.IGNORECASE)
+                            content = re.sub(r'<ref.*?>', ' ', content, flags=re.IGNORECASE)
+                            # 4. Strip images/categories/files
+                            content = re.sub(r'\[\[(File|Image|Category|চিত্র|ছবি|বিষয়শ্রেণী):.*?\]\]', '', content, flags=re.IGNORECASE | re.DOTALL)
+                            # 5. Strip templates (rough removal of markers)
+                            content = re.sub(r'\{\{[^|}]+\|', ' ', content)
+                            content = content.replace('}}', ' ').replace('{{', ' ')
+                            # 6. Strip template parameters like 1=
+                            content = re.sub(r'\|\s*\d+\s*=', ' ', content)
+                            content = re.sub(r'^\s*\d+\s*=', ' ', content, flags=re.MULTILINE)
+                            # 7. Strip HTML tags
+                            content = re.sub(r'<[^>]+>', ' ', content)
+                            # 8. Strip wikitext formatting
+                            content = content.replace("'''", "").replace("''", "")
+                            content = re.sub(r'^==+.*==+$', '', content, flags=re.MULTILINE)
+                            content = re.sub(r'^[;:*#]+', '', content, flags=re.MULTILINE)
+                            # 9. Replace punctuation with spaces
+                            content = re.sub(r'[।\.,\?\!\(\)\[\]\{\}:;=\-_\|]', ' ', content)
+                            
+                            # Save cleaned text for auditing (as requested by user)
+                            log_cleaned_article(actual_title, content)
+                            
+                            # Count Bengali words (tokens containing at least one Bengali char and no Latin)
+                            tokens = content.split()
+                            bengali_words = [t for t in tokens if re.search(r'[\u0980-\u09FF]', t) and not re.search(r'[a-zA-Z]', t)]
+                            words = len(bengali_words)
+                        else:
+                            content = page_data.get("extract", "")
+                            words = len(re.findall(r'[\u0980-\u09FF]+', content))
                     else:
+                        content = page_data.get("extract", "")
                         words = len([w for w in content.split() if len(w) > 0])
                     
                     return words, actual_title, is_redirect, "LIVE"
