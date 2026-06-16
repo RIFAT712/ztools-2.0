@@ -7,7 +7,6 @@ load_dotenv()
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_FILE = os.path.join(BASE_DIR, "ztools.db")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
-CLEANED_LOG_DIR = os.path.join(LOG_DIR, "articles")
 
 USER_AGENT = os.getenv("USER_AGENT")
 if not USER_AGENT or "your_username" in USER_AGENT:

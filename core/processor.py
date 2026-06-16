@@ -7,7 +7,7 @@ import random
 import time
 from collections import defaultdict
 from core.config import USER_AGENT, tracked_hashes
-from core.logger import smart_log, log_cleaned_article
+from core.logger import smart_log
 from core.db import db
 from core.utils import normalize_title, get_title_hash, get_wiki_url, get_article_status, to_bn, get_wiki_dbname
 from core.api import fetch_fountain_data, fetch_fountain_data_async, get_session
@@ -118,9 +118,6 @@ async def count_words_async(session, api_url, title, site_url, code=None):
                             content = re.sub(r'^[;:*#]+', '', content, flags=re.MULTILINE)
                             # 9. Replace punctuation with spaces
                             content = re.sub(r'[।\.,\?\!\(\)\[\]\{\}:;=\-_\|]', ' ', content)
-                            
-                            # Save cleaned text for auditing (as requested by user)
-                            log_cleaned_article(actual_title, content)
                             
                             # Count Bengali words (tokens containing at least one Bengali char and no Latin)
                             tokens = content.split()

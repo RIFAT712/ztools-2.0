@@ -1,11 +1,10 @@
 import os
 import logging
-from core.config import LOG_DIR, CLEANED_LOG_DIR
+from core.config import LOG_DIR
 
-# Ensure log directories exist
-for d in [LOG_DIR, CLEANED_LOG_DIR]:
-    if not os.path.exists(d):
-        os.makedirs(d, exist_ok=True)
+# Ensure log directory exists
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR, exist_ok=True)
 
 class LimitedFileHandler(logging.FileHandler):
     def __init__(self, filename, mode='a', encoding='utf-8', delay=False, max_lines=500):
@@ -53,14 +52,3 @@ def smart_log(msg, level="INFO", component=None):
         log_sync.info(msg)
     elif component == "live": 
         log_live.info(msg)
-
-def log_cleaned_article(title, content):
-    """Saves cleaned article text for verification/auditing."""
-    try:
-        # Sanitize title for filename
-        safe_title = "".join([c if c.isalnum() else "_" for c in title])
-        file_path = os.path.join(CLEANED_LOG_DIR, f"{safe_title}.txt")
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-    except Exception as e:
-        log_error.error(f"Failed to log cleaned article {title}: {str(e)}")
