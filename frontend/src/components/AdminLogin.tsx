@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { api } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -12,7 +12,7 @@ export const AdminLogin: React.FC = () => {
 
   React.useEffect(() => {
     // Preload editathons to speed up dashboard loading
-    axios.get('/api/editathons').catch(() => {});
+    api('/api/editathons').catch(() => {});
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -25,12 +25,10 @@ export const AdminLogin: React.FC = () => {
     formData.append('password', password);
 
     try {
-      await axios.post('/api/admin/login', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await api('/api/admin/login', formData);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'লগইন করতে সমস্যা হয়েছে।');
+      setError(err.message || 'লগইন করতে সমস্যা হয়েছে।');
     } finally {
       setLoading(false);
     }

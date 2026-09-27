@@ -1,5 +1,5 @@
-import sqlite3
 import os
+import sqlite3
 import threading
 from core.config import DB_FILE
 from core.logger import smart_log
@@ -7,17 +7,12 @@ from core.logger import smart_log
 class DatabaseManager:
     def __init__(self, db_path):
         self.db_path = db_path
-        self._ensure_dir()
         self._local = threading.local()
-
-    def _ensure_dir(self):
-        db_dir = os.path.dirname(self.db_path)
-        if db_dir and not os.path.exists(db_dir):
-            os.makedirs(db_dir, exist_ok=True)
 
     def connect(self):
         conn = sqlite3.connect(self.db_path, timeout=60, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode=WAL")
+        # WAL needs shared memory, which NFS (Toolforge's TOOL_DATA_DIR) can't provide safely
+        conn.execute(f"PRAGMA journal_mode={'DELETE' if os.getenv('TOOL_DATA_DIR') else 'WAL'}")
         conn.execute("PRAGMA synchronous=NORMAL")
         conn.execute("PRAGMA cache_size = -2000")
         return conn
@@ -54,7 +49,7 @@ class DatabaseManager:
                 editathon_code TEXT, title_hash TEXT, article_title TEXT, 
                 words INTEGER, actual_title TEXT, is_redirect BOOLEAN, last_updated TEXT,
                 PRIMARY KEY (editathon_code, title_hash))''')
-            self._migrate_table(cursor, "wordcount_cache", {"wiki": "TEXT"})
+            self._migrate_table(cursor, "wordcount_cache", {"wiki": "TEXT", "revid": "INTEGER", "rules_v": "INTEGER"})
             
             # 2. Indices
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_editathon_code ON wordcount_cache (editathon_code)')
@@ -62,7 +57,6 @@ class DatabaseManager:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_wiki_hash ON wordcount_cache (wiki, title_hash)')
             
             # 3. Other tables
-            cursor.execute('''CREATE TABLE IF NOT EXISTS monitor_status (key TEXT PRIMARY KEY, last_run TEXT)''')
             cursor.execute('''CREATE TABLE IF NOT EXISTS fountain_cache (code TEXT PRIMARY KEY, data TEXT, last_updated TEXT)''')
             
             # 4. Admin and Banning tables
@@ -76,36 +70,21 @@ class DatabaseManager:
                 PRIMARY KEY (editathon_code, username)
             )''')
             
-            # 5. Enabled Editathons (Selective tracking)
+            # 5. Tracked editathons: mirror of every recent bn Fountain contest, refreshed each sync cycle
             cursor.execute('''CREATE TABLE IF NOT EXISTS enabled_editathons (
                 code TEXT PRIMARY KEY,
                 name TEXT,
                 wiki TEXT,
                 site_url TEXT
             )''')
-            
-            # 6. Load memory cache
-            cursor.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache")
-            rows = cursor.fetchall()
-            for row in rows:
-                if row[0] and row[1]:
-                    tracked_hashes_set.add(f"{row[0]}:{row[1]}")
-                elif row[1]: # Legacy without wiki
-                    tracked_hashes_set.add(row[1])
-                    
-            smart_log(f"[DB] Initialized with {len(tracked_hashes_set)} tracked hashes")
+            self._migrate_table(cursor, "enabled_editathons", {"finish": "TEXT"})
+        self.refresh_tracked_hashes(tracked_hashes_set)
 
     def refresh_tracked_hashes(self, tracked_hashes_set):
         with self as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache")
-            rows = cursor.fetchall()
-            tracked_hashes_set.clear()
-            for row in rows:
-                if row[0] and row[1]:
-                    tracked_hashes_set.add(f"{row[0]}:{row[1]}")
-                elif row[1]:
-                    tracked_hashes_set.add(row[1])
-            smart_log(f"[DB] Tracked hashes refreshed: {len(tracked_hashes_set)} entries")
+            rows = conn.execute("SELECT DISTINCT wiki, title_hash FROM wordcount_cache WHERE wiki IS NOT NULL").fetchall()
+        tracked_hashes_set.clear()
+        tracked_hashes_set.update(f"{w}:{h}" for w, h in rows)
+        smart_log(f"[DB] Tracked hashes refreshed: {len(tracked_hashes_set)} entries")
 
 db = DatabaseManager(DB_FILE)

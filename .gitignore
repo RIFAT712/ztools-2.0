@@ -23,6 +23,7 @@ logs/
 .idea/
 frontend/node_modules/
 frontend/dist/
+.matplotlib_cache/
 # Frontend build artifacts (Tracking these for reliable Toolforge deployment)
 # static/assets/
 # static/index.html

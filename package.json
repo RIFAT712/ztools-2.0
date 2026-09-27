@@ -1,9 +1,6 @@
 {
   "name": "ztools-root",
   "private": true,
-  "dependencies": {
-    "path": "^0.12.7"
-  },
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
     "heroku-postbuild": "cd frontend && npm install && npm run build"

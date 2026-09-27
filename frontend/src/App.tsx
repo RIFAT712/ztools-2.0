@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { EditathonSelector } from './components/EditathonSelector';
-import { ProgressBar } from './components/ProgressBar';
-import DailyProgress from './components/DailyProgress';
 import { AdminLogin } from './components/AdminLogin';
 import { AdminPanel } from './components/AdminPanel';
-import { toBengaliDigits } from './utils';
+import { toBengaliDigits, api, API_BASE_URL } from './utils';
 import { Download, Copy, Award, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000'
-  : window.location.origin;
-axios.defaults.baseURL = API_BASE_URL;
-axios.defaults.withCredentials = true;
+// Charts (recharts) are most of the bundle but only the daily tab needs them
+const DailyProgress = lazy(() => import('./components/DailyProgress'));
 
 interface Editathon {
   code: string;
@@ -77,8 +71,8 @@ const AppContent: React.FC = () => {
     if (isReserved) return;
     const init = async () => {
       try {
-        const edRes = await axios.get('/api/editathons');
-        setEditathons(edRes.data.editathons);
+        const edRes = await api('/api/editathons');
+        setEditathons(edRes.editathons);
       } catch (err) {
         console.error('Init error', err);
       } finally {
@@ -164,8 +158,7 @@ const AppContent: React.FC = () => {
     setError(''); setWordCountData(undefined); setJuryStats(undefined); setRejectedArticles(undefined);
     setJurySubTab('stats'); setSortConfig({ key: 'total', direction: 'desc' });
     try {
-      const res = await axios.post('/api/jury_stats', { code: targetCode });
-      setJuryStats(res.data);
+      setJuryStats(await api('/api/jury_stats', { code: targetCode }));
     } catch (err: any) { setError('পর্যালোচনা পরিসংখ্যান লোড করতে সমস্যা হয়েছে।'); }
   }, []);
 
@@ -174,8 +167,7 @@ const AppContent: React.FC = () => {
     setError(''); setWordCountData(undefined); setJuryStats(undefined); setRejectedArticles(undefined);
     setSortConfig(null);
     try {
-      const res = await axios.post('/api/rejected_articles', { code: targetCode });
-      setRejectedArticles(res.data);
+      setRejectedArticles(await api('/api/rejected_articles', { code: targetCode }));
     } catch (err: any) { setError('বাতিলকৃত নিবন্ধের তালিকা লোড করতে সমস্যা হয়েছে।'); }
   }, []);
 
@@ -184,8 +176,7 @@ const AppContent: React.FC = () => {
     setError(''); setWordCountData(undefined); setJuryStats(undefined); setRejectedArticles(undefined);
     setDailyStats(undefined);
     try {
-      const res = await axios.post('/api/daily_stats', { code: targetCode });
-      setDailyStats(res.data);
+      setDailyStats(await api('/api/daily_stats', { code: targetCode }));
     } catch (err: any) { setError('প্রতিদিনের পরিসংখ্যান লোড করতে সমস্যা হয়েছে।'); }
   }, []);
 
@@ -479,7 +470,7 @@ const AppContent: React.FC = () => {
           </div>
         </div>
         {error && <div className="error-box"><AlertCircle size={18} /> {error}</div>}
-        <ProgressBar visible={progressVisible} progress={progress} />
+        {progressVisible && <div className="progress-wrap"><div className="progress loading-animation" style={{ width: `${progress}%` }}></div></div>}
         {wordCountData && activeTab === 'wordcount' && (
           <div className="card">
             <div className="card-header">
@@ -707,7 +698,7 @@ const AppContent: React.FC = () => {
           </div>
         )}
         {dailyStats && activeTab === 'daily' && (
-          <DailyProgress data={dailyStats} code={selectedCode} />
+          <Suspense fallback={null}><DailyProgress data={dailyStats} code={selectedCode} /></Suspense>
         )}
       </div>
       <footer className="footer"><div className="footer-content"><div className="footer-section"><p className="copyright">© ২০২৬ | উইকি এডিটাথন টুলস</p><p className="small-text">উইকিপিডিয়া এডিটাথন পরিচালনার একটি উন্মুক্ত টুল।</p></div><div className="footer-links"><a href="https://github.com/RIFAT712/ztools-2.0" target="_blank" rel="noreferrer" className="footer-link">গিটহাব</a></div></div></footer>

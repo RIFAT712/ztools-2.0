@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../utils';
 import { useNavigate } from 'react-router-dom';
 import { Shield, UserMinus, UserCheck, Search, LogOut, AlertCircle, Loader2, ListTodo, X, Home } from 'lucide-react';
 
@@ -21,9 +21,6 @@ export const AdminPanel: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'participants' | 'management'>('management');
-  const [allEditathons, setAllEditathons] = useState<any[]>([]);
-  const [mgmtLoading, setMgmtLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,10 +28,10 @@ export const AdminPanel: React.FC = () => {
       try {
         // Parallel requests for faster loading
         const [, edRes] = await Promise.all([
-          axios.get('/api/admin/check-auth'),
-          axios.get('/api/editathons')
+          api('/api/admin/check-auth'),
+          api('/api/editathons')
         ]);
-        setEditathons(edRes.data.editathons);
+        setEditathons(edRes.editathons);
       } catch (err) {
         navigate('/admin');
       }
@@ -42,57 +39,13 @@ export const AdminPanel: React.FC = () => {
     checkAuth();
   }, [navigate]);
 
-  useEffect(() => {
-    if (activeTab === 'management') {
-      loadAllEditathons();
-    }
-  }, [activeTab]);
-
-  const loadAllEditathons = async () => {
-    setMgmtLoading(true);
-    try {
-      const res = await axios.get('/api/admin/editathons/all');
-      setAllEditathons(res.data.editathons);
-    } catch {
-      setError('এডিটাথন তালিকা লোড করতে সমস্যা হয়েছে।');
-    } finally {
-      setMgmtLoading(false);
-    }
-  };
-
-  const toggleTracking = async (code: string, currentStatus: boolean) => {
-    const newStatus = !currentStatus;
-    
-    // 1. Instant UI update (Optimistic)
-    setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: newStatus } : e));
-    if (newStatus) {
-      const target = allEditathons.find(e => e.code === code);
-      if (target) {
-        setEditathons(prev => [...prev, { ...target, isEnabled: true }].sort((a, b) => a.name.localeCompare(b.name)));
-      }
-    } else {
-      setEditathons(prev => prev.filter(e => e.code !== code));
-    }
-
-    // 2. Background API call
-    try {
-      await axios.post('/api/admin/editathons/toggle', { code, isEnabled: newStatus });
-    } catch (err) {
-      // 3. Revert on failure
-      alert('অ্যাকশনটি সফল হয়নি। স্টেট রিসেট করা হচ্ছে।');
-      setAllEditathons(prev => prev.map(e => e.code === code ? { ...e, isEnabled: currentStatus } : e));
-      const res = await axios.get('/api/editathons'); // Full refresh to be safe
-      setEditathons(res.data.editathons);
-    }
-  };
-
   const fetchParticipants = async (code: string) => {
     if (!code) return;
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`/api/admin/participants/${code}`);
-      setParticipants(res.data.participants);
+      const res = await api(`/api/admin/participants/${code}`);
+      setParticipants(res.participants);
     } catch (err: any) {
       setError('অংশগ্রহণকারীদের তথ্য পেতে সমস্যা হয়েছে।');
     } finally {
@@ -109,7 +62,7 @@ export const AdminPanel: React.FC = () => {
     setActionLoading(participant);
     try {
       const endpoint = isBanned ? '/api/admin/unban' : '/api/admin/ban';
-      await axios.post(endpoint, { code: selectedCode, username: participant });
+      await api(endpoint, { code: selectedCode, username: participant });
       setParticipants(prev => prev.map(p => 
         p.username === participant ? { ...p, isBanned: !isBanned } : p
       ));
@@ -122,7 +75,7 @@ export const AdminPanel: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('/api/admin/logout');
+      await api('/api/admin/logout', {});
       navigate('/admin');
     } catch (err) {
       navigate('/admin');
@@ -150,25 +103,6 @@ export const AdminPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="admin-tabs card" style={{ padding: '4px', marginBottom: '24px', display: 'flex', gap: '4px' }}>
-        <button 
-          className={`btn ${activeTab === 'management' ? 'primary' : 'ghost'}`} 
-          style={{ flex: 1 }}
-          onClick={() => setActiveTab('management')}
-        >
-          <ListTodo size={16} /> এডিটাথন ম্যানেজমেন্ট
-        </button>
-        <button 
-          className={`btn ${activeTab === 'participants' ? 'primary' : 'ghost'}`} 
-          style={{ flex: 1 }}
-          onClick={() => setActiveTab('participants')}
-        >
-          <Search size={16} /> অংশগ্রহণকারী ম্যানেজমেন্ট
-        </button>
-      </div>
-
-      {activeTab === 'participants' && (
-        <>
           <div className="admin-controls card">
             <div className="selector-group">
               <label>এডিটাথন নির্বাচন করুন</label>
@@ -307,58 +241,6 @@ export const AdminPanel: React.FC = () => {
               </div>
             </div>
           )}
-        </>
-      )}
-
-      {activeTab === 'management' && (
-        <div className="card management-card">
-          <div className="card-header">
-            <h3>এডিটাথন ম্যানেজমেন্ট</h3>
-            <p className="small-text">এখানে যে এডিটাথনগুলো অ্যালাউ করবেন শুধু সেগুলোই ট্র্যাকিং লিস্টে দেখাবে।</p>
-          </div>
-          <div className="table-wrap">
-            {mgmtLoading ? (
-              <div className="loading-state">
-                <Loader2 className="spin" size={32} />
-                <p>সব এডিটাথন লোড হচ্ছে...</p>
-              </div>
-            ) : (
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>নাম</th>
-                    <th>কোড</th>
-                    <th style={{ textAlign: 'right' }}>ট্র্যাকিং স্ট্যাটাস</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allEditathons.map(ed => (
-                    <tr key={ed.code}>
-                      <td>{ed.name}</td>
-                      <td><code>{ed.code}</code></td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px' }}>
-                          <span className={`status-badge ${ed.isEnabled ? 'success' : 'danger'}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
-                            {ed.isEnabled ? 'ট্র্যাকিং চলছে' : 'ট্র্যাকিং বন্ধ'}
-                          </span>
-                          <button 
-                            className={`switch-toggle ${ed.isEnabled ? 'on' : 'off'}`}
-                            onClick={() => toggleTracking(ed.code, ed.isEnabled)}
-                            title={ed.isEnabled ? 'ট্র্যাকিং বন্ধ করুন' : 'ট্র্যাকিং চালু করুন'}
-                          >
-                            <div className="switch-handle"></div>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
       <style>{`
         .admin-panel {
           max-width: 1000px;
@@ -376,12 +258,6 @@ export const AdminPanel: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 12px;
-        }
-        .admin-tabs {
-          display: flex;
-          gap: 4px;
-          padding: 4px;
-          margin-bottom: 24px;
         }
         .admin-controls {
           display: grid;
@@ -473,39 +349,6 @@ export const AdminPanel: React.FC = () => {
         }
         .ghost:hover {
           background: var(--glass);
-        }
-        .switch-toggle {
-          flex-shrink: 0;
-          width: 60px;
-          height: 30px;
-          border-radius: 15px;
-          border: none;
-          position: relative;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .switch-toggle.on {
-          background-color: #22c55e;
-        }
-        .switch-toggle.off {
-          background-color: #ef4444;
-        }
-        .switch-handle {
-          width: 24px;
-          height: 24px;
-          background-color: white;
-          border-radius: 50%;
-          position: absolute;
-          left: 3px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .switch-toggle.on .switch-handle {
-          left: 33px;
         }
         .custom-select-wrapper {
           position: relative;

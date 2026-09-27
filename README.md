@@ -7,10 +7,9 @@ ZTools 2.0 is a robust, high-performance management system designed specifically
 ### 🛡️ Advanced Security
 - **Robust Authentication**: JWT-based admin authentication with mandatory database verification for every request.
 - **CSRF Protection**: High-security cookie policies (`SameSite=Strict`, `HttpOnly`, `Secure`) to prevent Cross-Site Request Forgery.
-- **Access Control**: Public API endpoints are strictly restricted to only process data for editathons explicitly enabled by an administrator.
+- **Access Control**: Public API endpoints only process Bengali Fountain editathons that the tool is tracking.
 
 ### 📊 Admin Dashboard
-- **Editathon Management**: One-click toggle to enable or disable tracking for specific Wikimedia Fountain editathons.
 - **Participant Management**: 
   - Modern, responsive interface for monitoring contributors.
   - Real-time Ban/Unban functionality with optimistic UI updates.
@@ -19,8 +18,10 @@ ZTools 2.0 is a robust, high-performance management system designed specifically
 - **Navigation**: Integrated "Home" shortcut and secure logout.
 
 ### 💾 Smart Data Management
-- **Selective Storage**: To keep the system lean and efficient, disabling an editathon automatically purges all associated word counts, metadata caches, and banned user records.
+- **Automatic Tracking**: Every Bengali Fountain editathon that finished within the last 365 days is tracked with no manual setup; the list refreshes every sync cycle (15 min). Active contests, plus those finished within the last 30 days (jury still reviewing), sync every cycle; older ones sync once a day. When a contest ages out, its caches are dropped but bans are kept.
 - **Real-time Monitoring**: Background services track Wikipedia edits in real-time, matching them against active editathons using a high-performance hash-based lookup.
+- **Change Detection**: Each sync cycle checks the current revision ID of every counted article (50 per request, no content) and recounts only the ones that changed. Edits missed while the live stream is reconnecting still get counted.
+- **Deadline Counts**: Once a contest's finish date passes, every article is counted once from the revision live at the deadline, then frozen. Edits made after the deadline don't change results.
 - **Fountain Integration**: Seamlessly pulls data from the Wikimedia Fountain tool for official participant lists and jury marks.
 
 ### ⚡ Performance Optimizations
@@ -40,7 +41,7 @@ ZTools 2.0 is a robust, high-performance management system designed specifically
 The system includes a specialized procedure for calculating word counts from WikiBooks and Wikipedia content, specifically designed to handle Wikitext and Bengali characters accurately.
 
 ### 1. Data Extraction
-The procedure retrieves page content using the MediaWiki Action API with `rvprop=content` and `rvslots=main`. The content is extracted from the JSON response path: `query.pages[page_id].revisions[0].slots.main["*"]`.
+The procedure retrieves page content with the MediaWiki Action API (`prop=revisions`, `rvprop=content`, `rvslots=main`, `formatversion=2`), fetching up to **50 articles per request** (POST). Normalized titles and redirects are mapped back to the original article names. If a reply is cut short by the API's result-size limit, the missing pages are retried in smaller batches; if a request fails outright, the last cached count is kept (marked `STALE`). Content is read from `query.pages[].revisions[0].slots.main.content`.
 
 ### 2. Wikitext Cleaning
 To ensure an accurate word count that reflects only readable text, a multi-stage cleaning process is applied using regular expressions:
@@ -84,9 +85,12 @@ This approach provides a "Cleaned Word Count" that aligns more closely with huma
 ## 🌐 Deployment (Toolforge)
 
 ZTools 2.0 is optimized for **Wikimedia Toolforge**.
-- **Environment**: Set up your `.env` in the home directory or project root.
+- **Environment**: Set these in `~/.env` (the tool's home) or with `toolforge envvars create NAME value`:
+  - `ADMIN_USER` / `ADMIN_PASS`: create the first admin account on an empty database. There is no built-in default.
+  - `JWT_SECRET`: a long random string. Without it, a random key is generated at startup and admin logins reset on every restart.
+  - `USER_AGENT` (optional): identifies the tool to Wikimedia APIs.
 - **Static Files**: The FastAPI server serves the pre-built React frontend from the `static/` directory.
-- **Database**: Uses a persistent SQLite database (`ztools.db`).
+- **Database**: SQLite `ztools.db` is stored in `$TOOL_DATA_DIR` (the tool's persistent NFS home) when set, otherwise in the project root. The container filesystem is wiped on restart, so the DB must not live there.
 
 ---
 *Developed for the Wikimedia Community to streamline editathon management and data transparency.*

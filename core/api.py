@@ -27,32 +27,13 @@ async def close_session():
     except RuntimeError:
         pass # No loop running
 
-async def fetch_fountain_data_async(code, force_fresh=False):
-    if not force_fresh:
-        with db as conn:
-            row = conn.execute("SELECT data FROM fountain_cache WHERE code = ?", (code,)).fetchone()
-            if row: return json.loads(row[0])
-    try:
-        session = await get_session()
-        async with session.get(f"https://fountain.toolforge.org/api/editathons/{code}", timeout=15) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
-            with db as conn:
-                conn.execute("INSERT OR REPLACE INTO fountain_cache (code, data, last_updated) VALUES (?, ?, ?)", 
-                             (code, json.dumps(data), datetime.now().isoformat()))
-            return data
-    except Exception as e:
-        with db as conn:
-            row = conn.execute("SELECT data FROM fountain_cache WHERE code = ?", (code,)).fetchone()
-            if row: return json.loads(row[0])
-        raise e
+def _cached_fountain(code):
+    with db as conn:
+        row = conn.execute("SELECT data FROM fountain_cache WHERE code = ?", (code,)).fetchone()
+    return json.loads(row[0]) if row else None
 
 def fetch_fountain_data(code, force_fresh=False):
-    # Synchronous wrapper for legacy compatibility
-    if not force_fresh:
-        with db as conn:
-            row = conn.execute("SELECT data FROM fountain_cache WHERE code = ?", (code,)).fetchone()
-            if row: return json.loads(row[0])
+    if not force_fresh and (cached := _cached_fountain(code)): return cached
     try:
         resp = requests.get(f"https://fountain.toolforge.org/api/editathons/{code}", timeout=10, headers={"User-Agent": USER_AGENT})
         resp.raise_for_status()
@@ -61,23 +42,21 @@ def fetch_fountain_data(code, force_fresh=False):
             conn.execute("INSERT OR REPLACE INTO fountain_cache (code, data, last_updated) VALUES (?, ?, ?)", 
                          (code, json.dumps(data), datetime.now().isoformat()))
         return data
-    except Exception as e:
-        with db as conn:
-            row = conn.execute("SELECT data FROM fountain_cache WHERE code = ?", (code,)).fetchone()
-            if row: return json.loads(row[0])
-        raise e
+    except Exception:
+        if cached := _cached_fountain(code): return cached
+        raise
 
 def get_bn_editathons():
-    try:
-        data = requests.get("https://fountain.toolforge.org/api/editathons", timeout=10).json()
-        cutoff = datetime.now() - timedelta(days=365)
-        result = []
-        for e in data:
-            wiki = e.get("wiki", "bn")
-            if (wiki.split(':')[1] if ':' in wiki else wiki) != "bn": continue
-            try:
-                if datetime.strptime(e.get("finish"), "%Y-%m-%dT%H:%M:%SZ") < cutoff: continue
-            except: pass
-            result.append({"code": e.get("code"), "name": e.get("name"), "wiki": wiki, "finish": e.get("finish"), "site_url": get_wiki_url(wiki)})
-        return result
-    except: return []
+    # Raises on network/HTTP failure so callers never mistake an outage for "no contests".
+    resp = requests.get("https://fountain.toolforge.org/api/editathons", timeout=10, headers={"User-Agent": USER_AGENT})
+    resp.raise_for_status()
+    cutoff = datetime.now() - timedelta(days=365)
+    result = []
+    for e in resp.json():
+        wiki = e.get("wiki", "bn")
+        if (wiki.split(':')[1] if ':' in wiki else wiki) != "bn": continue
+        try:
+            if datetime.strptime(e.get("finish"), "%Y-%m-%dT%H:%M:%SZ") < cutoff: continue
+        except: pass
+        result.append({"code": e.get("code"), "name": e.get("name"), "wiki": wiki, "finish": e.get("finish"), "site_url": get_wiki_url(wiki)})
+    return result

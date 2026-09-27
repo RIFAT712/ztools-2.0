@@ -1,12 +1,8 @@
 fastapi
 uvicorn
 python-multipart
-starlette
-a2wsgi
-httpx
 aiohttp
 sseclient-py
 python-dotenv
 requests
-matplotlib
 PyJWT

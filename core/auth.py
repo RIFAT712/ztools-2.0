@@ -1,21 +1,25 @@
 import jwt
+import hmac
 import hashlib
-import os
+import secrets
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Security, Request
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import HTTPException, Request
 from core.config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from core.db import db
 
-security = HTTPBearer()
+def _scrypt(password, salt):
+    return hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1).hex()
 
 def get_password_hash(password):
-    # Simple SHA256 with a static salt for this non-critical tool
-    salt = "ztools_salt_123"
-    return hashlib.sha256((password + salt).encode()).hexdigest()
+    salt = secrets.token_bytes(16)
+    return f"scrypt${salt.hex()}${_scrypt(password, salt)}"
 
 def verify_password(plain_password, hashed_password):
-    return get_password_hash(plain_password) == hashed_password
+    if hashed_password.startswith("scrypt$"):
+        _, salt, digest = hashed_password.split("$")
+        return hmac.compare_digest(_scrypt(plain_password, bytes.fromhex(salt)), digest)
+    # Legacy SHA-256 + static salt; admin_login upgrades these to scrypt on the next successful login
+    return hmac.compare_digest(hashlib.sha256((plain_password + "ztools_salt_123").encode()).hexdigest(), hashed_password)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -26,9 +30,8 @@ def create_access_token(data: dict):
 
 def decode_access_token(token):
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        return payload if payload["exp"] >= datetime.utcnow().timestamp() else None
-    except:
+        return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])  # PyJWT verifies exp
+    except jwt.PyJWTError:
         return None
 
 async def get_current_user(request: Request):

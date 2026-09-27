@@ -26,254 +26,102 @@ interface DailyProgressProps {
   code?: string;
 }
 
+const MONTHS = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+const WEEKDAYS = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+
+const CHARTS = [
+  { key: 'total_words', title: 'মোট শব্দসংখ্যা বৃদ্ধি', name: 'মোট শব্দ', color: '#2563eb', area: true, file: 'শব্দ_বৃদ্ধি' },
+  { key: 'total_count', title: 'মোট নিবন্ধ সংখ্যা', name: 'মোট নিবন্ধ', color: '#10b981', area: true, file: 'নিবন্ধ_সংখ্যা' },
+  { key: 'daily_count', title: 'প্রতিদিনের নিবন্ধ জমা', name: 'নতুন নিবন্ধ', color: '#f59e0b', area: false, file: 'প্রতিদিনের_নিবন্ধ' },
+  { key: 'daily_words', title: 'প্রতিদিনের শব্দসংখ্যা', name: 'শব্দসংখ্যা', color: '#8b5cf6', area: false, file: 'প্রতিদিনের_শব্দ' },
+];
+
+const formatYAxis = (value: number) => {
+  const format = (v: number, unit: string) => {
+    const rounded = Math.round(v * 10) / 10;
+    const str = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
+    return toBengaliDigits(str) + ' ' + unit;
+  };
+
+  if (value >= 10000000) return format(value / 10000000, 'কোটি');
+  if (value >= 100000) return format(value / 100000, 'লক্ষ');
+  if (value >= 1000) return format(value / 1000, 'হাজার');
+  return toBengaliDigits(value);
+};
+
+const formatDate = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return toBengaliDigits(d.getDate()) + ' ' + MONTHS[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
+};
+
+// Serialize the chart recharts already rendered into a standalone .svg file.
+const downloadSvg = (btn: HTMLElement, filename: string) => {
+  const svg = btn.closest('.chart-container')?.querySelector('svg.recharts-surface');
+  if (!svg) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }));
+  a.download = filename;
+  a.click();
+};
+
 const DailyProgress: React.FC<DailyProgressProps> = ({ data, code }) => {
   if (!data || data.length === 0) {
     return <div className="no-data">কোনো তথ্য পাওয়া যায়নি।</div>;
   }
 
-  const formatYAxis = (value: number) => {
-    const format = (v: number, unit: string) => {
-      const rounded = Math.round(v * 10) / 10;
-      const str = rounded % 1 === 0 ? rounded.toString() : rounded.toFixed(1);
-      return toBengaliDigits(str) + ' ' + unit;
-    };
-
-    if (value >= 10000000) return format(value / 10000000, 'কোটি');
-    if (value >= 100000) return format(value / 100000, 'লক্ষ');
-    if (value >= 1000) return format(value / 1000, 'হাজার');
-    return toBengaliDigits(value);
-  };
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
-    return toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
-  };
-
-  const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
-    : window.location.origin;
-
   return (
     <div className="daily-progress">
       <div className="charts-grid">
-        <div className="chart-container card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="small">মোট শব্দসংখ্যা বৃদ্ধি</div>
-            {code && (
-              <a 
-                href={`${API_BASE_URL}/api/daily_graph/${code}?metric=total_words&format=svg`} 
-                className="icon-btn" 
-                title="SVG ডাউনলোড করুন"
-                download={`শব্দ_বৃদ্ধি_${code}.svg`}
-              >
-                <Download size={14} />
-              </a>
-            )}
-          </div>
-          <div className="chart-body" style={{ height: '300px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ left: 20, right: 20, top: 10 }}>
-                <defs>
-                  <linearGradient id="colorWords" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate} 
-                  tick={{ fontSize: 14 }} 
-                  minTickGap={30}
-                />
-                <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 14 }} width={80} />
-                <Tooltip 
-                  labelFormatter={(label) => {
-                    const d = new Date(label);
-                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
-                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
-                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
-                  }}
-                  formatter={(value: any) => [toBengaliDigits(value), 'মোট শব্দ']}
-                  contentStyle={{ 
-                    backgroundColor: 'var(--card)', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    color: 'var(--text)'
-                  }}
-                  itemStyle={{ color: 'var(--text)' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="total_words" 
-                  stroke="#2563eb" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorWords)" 
-                  name="মোট শব্দ"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-container card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="small">মোট নিবন্ধ সংখ্যা</div>
-            {code && (
-              <a 
-                href={`${API_BASE_URL}/api/daily_graph/${code}?metric=total_count&format=svg`} 
-                className="icon-btn" 
-                title="SVG ডাউনলোড করুন"
-                download={`নিবন্ধ_সংখ্যা_${code}.svg`}
-              >
-                <Download size={14} />
-              </a>
-            )}
-          </div>
-          <div className="chart-body" style={{ height: '300px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ left: 20, right: 20, top: 10 }}>
-                <defs>
-                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate} 
-                  tick={{ fontSize: 14 }} 
-                  minTickGap={30}
-                />
-                <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 14 }} width={80} />
-                <Tooltip 
-                  labelFormatter={(label) => {
-                    const d = new Date(label);
-                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
-                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
-                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
-                  }}
-                  formatter={(value: any) => [toBengaliDigits(value), 'মোট নিবন্ধ']}
-                  contentStyle={{ 
-                    backgroundColor: 'var(--card)', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    color: 'var(--text)'
-                  }}
-                  itemStyle={{ color: 'var(--text)' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="total_count" 
-                  stroke="#10b981" 
-                  strokeWidth={2}
-                  fillOpacity={1} 
-                  fill="url(#colorCount)" 
-                  name="মোট নিবন্ধ"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-container card">
-          <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="small">প্রতিদিনের নিবন্ধ জমা</div>
-            {code && (
-              <a 
-                href={`${API_BASE_URL}/api/daily_graph/${code}?metric=daily_count&format=svg`} 
-                className="icon-btn" 
-                title="SVG ডাউনলোড করুন"
-                download={`প্রতিদিনের_নিবন্ধ_${code}.svg`}
-              >
-                <Download size={14} />
-              </a>
-            )}
-          </div>
-          <div className="chart-body" style={{ height: '300px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ left: 20, right: 20, top: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate} 
-                  tick={{ fontSize: 14 }} 
-                  minTickGap={30}
-                />
-                <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 14 }} width={80} />
-                <Tooltip 
-                  labelFormatter={(label) => {
-                    const d = new Date(label);
-                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
-                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
-                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
-                  }}
-                  formatter={(value: any) => [toBengaliDigits(value), 'নতুন নিবন্ধ']}
-                  contentStyle={{ 
-                    backgroundColor: 'var(--card)', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    color: 'var(--text)'
-                  }}
-                  itemStyle={{ color: 'var(--text)' }}
-                />
-                <Bar dataKey="daily_count" fill="#f59e0b" radius={[4, 4, 0, 0]} name="নতুন নিবন্ধ" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-container card">
-          <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="small">প্রতিদিনের শব্দসংখ্যা</div>
-            {code && (
-              <a 
-                href={`${API_BASE_URL}/api/daily_graph/${code}?metric=daily_words&format=svg`} 
-                className="icon-btn" 
-                title="SVG ডাউনলোড করুন"
-                download={`প্রতিদিনের_শব্দ_${code}.svg`}
-              >
-                <Download size={14} />
-              </a>
-            )}
-          </div>
-          <div className="chart-body" style={{ height: '300px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ left: 20, right: 20, top: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={formatDate} 
-                  tick={{ fontSize: 14 }} 
-                  minTickGap={30}
-                />
-                <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 14 }} width={80} />
-                <Tooltip 
-                  labelFormatter={(label) => {
-                    const d = new Date(label);
-                    const months = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
-                    const weekdays = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
-                    return weekdays[d.getDay()] + ', ' + toBengaliDigits(d.getDate()) + ' ' + months[d.getMonth()] + ' ' + toBengaliDigits(d.getFullYear(), false);
-                  }}
-                  formatter={(value: any) => [toBengaliDigits(value), 'শব্দসংখ্যা']}
-                  contentStyle={{ 
-                    backgroundColor: 'var(--card)', 
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    color: 'var(--text)'
-                  }}
-                  itemStyle={{ color: 'var(--text)' }}
-                />
-                <Bar dataKey="daily_words" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="শব্দসংখ্যা" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {CHARTS.map(c => {
+          const Chart = c.area ? AreaChart : BarChart;
+          return (
+            <div key={c.key} className="chart-container card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="small">{c.title}</div>
+                {code && (
+                  <button className="icon-btn" title="SVG ডাউনলোড করুন" onClick={e => downloadSvg(e.currentTarget, `${c.file}_${code}.svg`)}>
+                    <Download size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="chart-body" style={{ height: '300px', width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <Chart data={data} margin={{ left: 20, right: 20, top: 10 }}>
+                    <defs>
+                      <linearGradient id={`grad_${c.key}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={c.color} stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor={c.color} stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
+                    <XAxis dataKey="date" tickFormatter={formatDate} tick={{ fontSize: 14 }} minTickGap={30} />
+                    <YAxis tickFormatter={formatYAxis} tick={{ fontSize: 14 }} width={80} />
+                    <Tooltip
+                      labelFormatter={(label) => {
+                        const d = new Date(label);
+                        return WEEKDAYS[d.getDay()] + ', ' + formatDate(label);
+                      }}
+                      formatter={(value: any) => [toBengaliDigits(value), c.name]}
+                      contentStyle={{
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        color: 'var(--text)'
+                      }}
+                      itemStyle={{ color: 'var(--text)' }}
+                    />
+                    {c.area
+                      ? <Area type="monotone" dataKey={c.key} stroke={c.color} strokeWidth={2} fillOpacity={1} fill={`url(#grad_${c.key})`} name={c.name} />
+                      : <Bar dataKey={c.key} fill={c.color} radius={[4, 4, 0, 0]} name={c.name} />}
+                  </Chart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      
+
       <style>{`
         .charts-grid {
           display: grid;
