@@ -12,7 +12,10 @@ def _file_handler(filename):
 # Root Logger
 root_handler = _file_handler(os.path.join(LOG_DIR, "success.log"))
 root_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-logging.basicConfig(level=logging.INFO, handlers=[root_handler])
+# Log files live on the container disk (wiped on restart); stderr is what `toolforge webservice logs` shows
+stderr_handler = logging.StreamHandler()
+stderr_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logging.basicConfig(level=logging.INFO, handlers=[root_handler, stderr_handler])
 
 def setup_logger(name, log_file, level=logging.INFO):
     handler = _file_handler(os.path.join(LOG_DIR, log_file))
@@ -24,6 +27,7 @@ def setup_logger(name, log_file, level=logging.INFO):
     return logger
 
 log_error = setup_logger('error_logger', 'error.log', level=logging.ERROR)
+log_error.addHandler(stderr_handler)
 log_sync = setup_logger('sync_logger', 'sync.log')
 log_live = setup_logger('live_logger', 'live.log')
 

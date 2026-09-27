@@ -1,6 +1,5 @@
 import re
 import asyncio
-import json
 import random
 import time
 from collections import defaultdict
@@ -9,7 +8,7 @@ from core.config import tracked_hashes
 from core.logger import smart_log
 from core.db import db
 from core.utils import normalize_title, get_title_hash, get_wiki_url, get_article_status, get_wiki_dbname
-from core.api import fetch_fountain_data, get_session
+from core.api import fetch_fountain_data, get_session, _cached_fountain
 
 # Task Deduplication Registry Helper
 def get_pending_refreshes():
@@ -302,6 +301,10 @@ async def refresh_editathon_data(code, queue=None, target_article=None, componen
     if code in pending and not target_article:
         smart_log(f"[{code}] Refresh already in progress, joining wait pool", component=component)
         await pending[code].wait()
+        # A viewer who joined still needs the finished leaderboard, or its progress bar never ends
+        if queue and (cached := _cached_fountain(code)):
+            totals, site_url = calculate_leaderboard(cached, get_all_cached_for_editathon(code))
+            await queue.put({"type": "complete", "data": (totals, site_url)})
         return None
 
     refresh_event = asyncio.Event()
@@ -343,7 +346,10 @@ async def refresh_editathon_data(code, queue=None, target_article=None, componen
 
         # Perform deletion of stale records (articles removed from Fountain)
         stale_hashes = set(cached_wordcounts.keys()) - current_fountain_hashes
-        if stale_hashes and not target_article:
+        if stale_hashes and not current_fountain_hashes:
+            # Fountain listing zero articles for a contest we hold counts for is far likelier a glitch than reality
+            smart_log(f"[{code}] Fountain lists no articles; keeping {len(stale_hashes)} cached counts", "ERROR")
+        elif stale_hashes and not target_article:
             smart_log(f"[{code}] Found {len(stale_hashes)} stale articles. Removing from local DB.", component=component)
             with db as conn:
                 for s_hash in stale_hashes:
@@ -406,6 +412,7 @@ async def refresh_editathon_data(code, queue=None, target_article=None, componen
         return data
     except Exception as e:
         smart_log(f"Refresh Error for {code}: {e}", "ERROR")
+        if queue: await queue.put({"type": "error", "message": "তথ্য হালনাগাদ করা যায়নি; সংরক্ষিত তথ্য দেখানো হচ্ছে।"})
         return None
     finally:
         refresh_event.set()
@@ -418,11 +425,9 @@ async def process_word_counts_async(code, queue=None, source="UI", target_articl
         # Immediate ping to start the stream
         if queue: await queue.put({"type": "ping", "ts": time.time()})
         
-        with db as conn:
-            f_row = conn.execute("SELECT data FROM fountain_cache WHERE code = ?", (code,)).fetchone()
-        cached_wordcounts = get_all_cached_for_editathon(code)
-        if f_row:
-            totals, site_url = calculate_leaderboard(json.loads(f_row[0]), cached_wordcounts)
+        cached_fountain = _cached_fountain(code)
+        if cached_fountain:
+            totals, site_url = calculate_leaderboard(cached_fountain, get_all_cached_for_editathon(code))
             if queue and totals:
                 await queue.put({"type": "info", "site_url": site_url})
                 await queue.put({"type": "cache", "data": (totals, site_url)})

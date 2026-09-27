@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import contextlib
 import threading
 from core.config import DB_FILE
 from core.logger import smart_log
@@ -25,9 +26,15 @@ class DatabaseManager:
         conn = getattr(self._local, 'conn', None)
         if conn:
             try:
-                if exc_type: conn.rollback()
-                else: conn.commit()
-            except: pass
+                if exc_type:
+                    with contextlib.suppress(Exception): conn.rollback()
+                else:
+                    try:
+                        conn.commit()
+                    except Exception:
+                        # A failed commit (lock timeout, full disk) must reach the caller, never look like success
+                        with contextlib.suppress(Exception): conn.rollback()
+                        raise
             finally:
                 conn.close()
                 self._local.conn = None
@@ -41,6 +48,7 @@ class DatabaseManager:
                 cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}")
 
     def init_db(self, tracked_hashes_set):
+        smart_log(f"[DB] Using {self.db_path}" + ("" if os.getenv("TOOL_DATA_DIR") else " (TOOL_DATA_DIR not set: on Toolforge this disk is wiped on restart)"))
         with self as conn:
             cursor = conn.cursor()
             

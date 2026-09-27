@@ -49,6 +49,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_running_tasks = set()
+
 class CodeReq(BaseModel):
     code: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -57,8 +59,9 @@ async def health():
     return {"status": "ok", "time": datetime.now().isoformat()}
 
 # Admin APIs
+# Plain `def`: scrypt is CPU-heavy, so it runs in FastAPI's threadpool instead of blocking the event loop
 @app.post("/api/admin/login")
-async def admin_login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+def admin_login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     try:
         with db as conn:
             row = conn.execute("SELECT password_hash FROM admins WHERE username = ?", (form_data.username,)).fetchone()
@@ -137,11 +140,13 @@ def get_editathons():
 # Plain `def` endpoints: FastAPI runs them in its threadpool, so blocking fetches are fine here.
 @app.post("/api/jury_stats")
 def jury_stats(req: CodeReq):
+    ensure_enabled_editathon(req.code)
     sorted_juries, conflicts = get_jury_stats_core(fetch_fountain_data(req.code))
     return {"raw": {"stats": sorted_juries, "conflicts": conflicts}}
 
 @app.post("/api/rejected_articles")
 def rejected_articles(req: CodeReq):
+    ensure_enabled_editathon(req.code)
     f_data = fetch_fountain_data(req.code)
     return {"rejected_articles": [
         art.get("name") for art in f_data.get("articles", [])
@@ -150,20 +155,23 @@ def rejected_articles(req: CodeReq):
 
 @app.post("/api/daily_stats")
 def daily_stats(req: CodeReq):
+    ensure_enabled_editathon(req.code)
     return get_daily_stats_core(fetch_fountain_data(req.code), get_all_cached_for_editathon(req.code))
 
 @app.post("/api/count_words")
 async def count_words(req: CodeReq):
     ensure_enabled_editathon(req.code)
     q = asyncio.Queue()
-    asyncio.create_task(process_word_counts_async(req.code, q, source="UI"))
+    # Keep a reference: the event loop holds tasks only weakly, and a collected task would leave the stream hanging
+    task = asyncio.create_task(process_word_counts_async(req.code, q, source="UI"))
+    _running_tasks.add(task); task.add_done_callback(_running_tasks.discard)
     async def generate():
         try:
             while True:
                 item = await q.get()
                 if item == "DONE": break
                 yield json.dumps(item) + "\n"
-        except Exception as e: yield json.dumps({"error": str(e)}) + "\n"
+        except Exception as e: yield json.dumps({"type": "error", "message": str(e)}) + "\n"
     return StreamingResponse(generate(), media_type="application/x-ndjson")
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

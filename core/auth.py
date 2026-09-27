@@ -2,13 +2,17 @@ import jwt
 import hmac
 import hashlib
 import secrets
+import threading
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Request
 from core.config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from core.db import db
 
+_scrypt_slots = threading.BoundedSemaphore(2)  # each call takes ~16 MB and ~60 ms CPU; cap it under a login flood
+
 def _scrypt(password, salt):
-    return hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1).hex()
+    with _scrypt_slots:
+        return hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1).hex()
 
 def get_password_hash(password):
     salt = secrets.token_bytes(16)
