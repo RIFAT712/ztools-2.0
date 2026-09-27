@@ -1,6 +1,6 @@
-export const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8000'
-  : window.location.origin;
+// The built app is served by the backend itself, so it always calls its own origin (no CORS involved).
+// Only the Vite dev server (npm run dev, port 5173) talks to the backend on port 8000.
+export const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:8000' : window.location.origin;
 
 // GET without body, POST with JSON (or FormData) body. Throws with the server's `detail` on non-2xx.
 export const api = async (path: string, body?: unknown) => {
